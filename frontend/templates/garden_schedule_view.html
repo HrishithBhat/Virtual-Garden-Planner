@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Schedule</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Schedule</h1>
+            <a href="{{ url_for('api.my_garden') }}" class="btn btn-primary">Back to My Garden</a>
+        </div>
+
+        <div class="card">
+            <h3>Schedule created on {{ schedule.created_at }}</h3>
+            {% if plant %}
+                <div class="plant-summary">
+                    <h4 class="schedule-title">{{ plant.name }} <span class="small">({{ plant.scientific_name }})</span></h4>
+                    {% if plant.photo_url %}
+                        <img src="{{ plant.photo_url }}" alt="{{ plant.name }}" class="plant-photo-small">
+                    {% endif %}
+                    <p class="small">Duration: {{ plant.duration_days }} days • Type: {{ plant.type }}</p>
+                    <p class="desc">{{ plant.description }}</p>
+                </div>
+            {% endif %}
+            <h4>Schedule</h4>
+            <div class="schedule-list" id="scheduleList" data-schedule-id="{{ schedule.id }}" data-created-at="{{ schedule.created_at }}" data-duration="{{ plant.duration_days }}">
+                <div id="dayInfo" class="small" style="margin-bottom:8px"></div>
+                {% for day in data %}
+                    {% set day_num = day.day if day.day is defined else loop.index %}
+                    <div class="schedule-day" id="day-{{ day_num }}" data-day="{{ day_num }}">
+                        <div class="day-header">
+                            <strong>Day {{ day_num }}:</strong>
+                        </div>
+                        <div class="tasks">
+                            {% set tasks_for_day = tasks_map.get(day_num) if tasks_map else None %}
+                            {% if tasks_for_day %}
+                                {% for t in tasks_for_day %}
+                                    <div class="task">
+                                        <label>
+                                            <input type="checkbox" class="task-checkbox" data-day="{{ day_num }}" data-task-index="{{ t.task_index }}" {% if t.completed %}checked{% endif %}>
+                                            {{ t.task_text }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                {% for t in day.tasks %}
+                                    <div class="task">
+                                        <label>
+                                            <input type="checkbox" class="task-checkbox" data-day="{{ day_num }}" data-task-index="{{ loop.index0 }}">
+                                            {{ t }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:1rem">
+            <h3>AI Assistant</h3>
+            <p class="small">Ask about this plant and its schedule. Each schedule has its own chat.</p>
+            <div id="aiChat" class="ai-chat-container" data-schedule-id="{{ schedule.id }}">
+                <div id="aiMessages" class="ai-messages"></div>
+                <div class="ai-actions">
+                    <form id="aiForm" class="ai-form" onsubmit="return false;">
+                        <input id="aiInput" type="text" placeholder="Ask a question about today's tasks, next steps, or this plant..." class="ai-input" required>
+                        <button id="aiSend" class="btn btn-primary" style="width:auto">Send</button>
+                    </form>
+                    <form id="aiUploadForm" class="ai-upload" onsubmit="return false;">
+                        <input id="aiImage" type="file" accept="image/*" capture="environment">
+                        <button id="aiUploadBtn" class="btn btn-success" style="width:auto">Upload Image</button>
+                    </form>
+                </div>
+                <div id="aiStatus" class="small"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function(){
+            const list = document.getElementById('scheduleList');
+            const info = document.getElementById('dayInfo');
+            if(!list) return;
+            const createdAt = list.dataset.createdAt;
+            const duration = parseInt(list.dataset.duration) || 0;
+            let currentDay = null;
+            try{
+                if(createdAt){
+                    const start = new Date(createdAt);
+                    const now = new Date();
+                    // compute day difference in local dates (ignore time of day)
+                    const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+                    const nowUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+                    const diffDays = Math.floor((nowUtc - startUtc) / (24*60*60*1000));
+                    currentDay = diffDays + 1; // day 1 is start date
+                    if(currentDay < 1) currentDay = 1;
+                }
+            }catch(e){
+                console.error('Error parsing schedule date', e);
+            }
+            // clamp
+            if(currentDay === null) currentDay = duration || 1;
+            if(duration && currentDay > duration) currentDay = duration;
+
+            // update info text
+            info.textContent = 'You can check tasks for Day ' + currentDay + ' and earlier.';
+
+            // enable/disable checkboxes
+            const taskCheckboxes = list.querySelectorAll('.task-checkbox');
+            taskCheckboxes.forEach(cb => {
+                const day = parseInt(cb.dataset.day);
+                if(!isNaN(day)){
+                    if(day > currentDay){
+                        cb.disabled = true;
+                        const parent = cb.closest('.schedule-day');
+                        if(parent) parent.classList.add('disabled-day');
+                    } else {
+                        cb.disabled = false;
+                        const parent = cb.closest('.schedule-day');
+                        if(parent) parent.classList.remove('disabled-day');
+                    }
+                }
+            });
+
+            // handle checkbox change to persist state
+            const scheduleId = parseInt(list.dataset.scheduleId);
+            function showInlineMessage(msg){
+                let el = document.getElementById('inlineMsg');
+                if(!el){
+                    el = document.createElement('div');
+                    el.id = 'inlineMsg';
+                    el.style.marginTop = '8px';
+                    list.parentNode.insertBefore(el, list.nextSibling);
+                }
+                el.textContent = msg;
+                setTimeout(()=>{ el.textContent = '' }, 4000);
+            }
+
+            taskCheckboxes.forEach(cb => {
+                cb.addEventListener('change', function(e){
+                    const day = parseInt(this.dataset.day);
+                    const task_index = parseInt(this.dataset.taskIndex);
+                    const completed = this.checked;
+                    fetch('{{ url_for('api.garden_schedule_task_toggle') }}', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({schedule_id: scheduleId, day: day, task_index: task_index, completed: completed})
+                    }).then(res => res.json()).then(data => {
+                        if(data && data.message){
+                            showInlineMessage(data.message);
+                        } else if(data && data.error){
+                            showInlineMessage('Error: '+data.error);
+                        }
+                    }).catch(err => {
+                        showInlineMessage('Network error');
+                    });
+                });
+            });
+        })();
+    </script>
+    <script>
+        (function(){
+            const container = document.getElementById('aiChat');
+            if(!container) return;
+            const scheduleId = parseInt(container.dataset.scheduleId);
+            const messagesEl = document.getElementById('aiMessages');
+            const input = document.getElementById('aiInput');
+            const sendBtn = document.getElementById('aiSend');
+            const statusEl = document.getElementById('aiStatus');
+            const uploadInput = document.getElementById('aiImage');
+            const uploadBtn = document.getElementById('aiUploadBtn');
+
+            let busy = false;
+            function setBusy(v){
+                busy = !!v;
+                input.disabled = busy;
+                sendBtn.disabled = busy;
+                uploadBtn.disabled = busy;
+                uploadInput.disabled = busy;
+            }
+            function appendMessage(role, text, image){
+                const wrap = document.createElement('div');
+                wrap.className = 'ai-msg ' + (role === 'user' ? 'ai-user' : 'ai-assistant');
+                if(image){
+                    const img = document.createElement('img');
+                    img.src = image; img.alt = role + ' image';
+                    img.className = 'ai-image';
+                    wrap.appendChild(img);
+                }
+                if(text){
+                    const p = document.createElement('div');
+                    p.textContent = text;
+                    wrap.appendChild(p);
+                }
+                messagesEl.appendChild(wrap);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
+            function setStatus(msg){ statusEl.textContent = msg || ''; }
+            function loadHistory(){
+                fetch(`/api/schedule/${scheduleId}/chat`).then(r=>r.json()).then(list=>{
+                    messagesEl.innerHTML='';
+                    (list||[]).forEach(m=> appendMessage(m.role, m.message, m.image_url));
+                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                });
+            }
+            sendBtn.addEventListener('click', function(){
+                if(busy) return;
+                const text = (input.value||'').trim();
+                if(!text) return;
+                appendMessage('user', text);
+                input.value='';
+                setStatus('Thinking...');
+                setBusy(true);
+                fetch(`/api/schedule/${scheduleId}/chat`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message:text})})
+                    .then(r=>r.json()).then(res=>{ appendMessage('assistant', res.assistant || ''); setStatus(''); })
+                    .catch(()=> setStatus('Error'))
+                    .finally(()=> setBusy(false));
+            });
+            uploadBtn.addEventListener('click', function(){
+                if(busy) return;
+                const file = uploadInput.files && uploadInput.files[0];
+                if(!file) return;
+                setStatus('Uploading image...');
+                setBusy(true);
+                const fd = new FormData(); fd.append('image', file);
+                fetch(`/api/schedule/${scheduleId}/chat/upload`, { method:'POST', body: fd })
+                    .then(r=>r.json()).then(res=>{
+                        if(res.image_url){
+                            appendMessage('user', null, res.image_url);
+                            if(res.assistant){ appendMessage('assistant', res.assistant); }
+                            setStatus('');
+                        } else setStatus(res.error || 'Upload failed');
+                    }).catch(()=> setStatus('Upload error'))
+                    .finally(()=> setBusy(false));
+            });
+            loadHistory();
+        })();
+    </script>
+</body>
+</html>

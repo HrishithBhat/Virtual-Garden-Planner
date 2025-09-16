@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Auth App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Create Account 🚀</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 2rem;">Join us today and get started</p>
+        
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+        
+        <form method="POST" id="registerForm">
+            <div class="form-group">
+                <input type="text" name="username" placeholder="Username" required autocomplete="username" minlength="3">
+            </div>
+            <div class="form-group">
+                <input type="email" name="email" placeholder="Email" required autocomplete="email">
+            </div>
+            <div class="form-group">
+                <input type="password" name="password" placeholder="Password (min 6 characters)" required autocomplete="new-password" minlength="6">
+            </div>
+            <button type="submit" class="btn btn-success" id="registerBtn">
+                Create Account
+            </button>
+        </form>
+        
+        <div class="link">
+            <a href="{{ url_for('api.login') }}">Already have an account? Sign in</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const btn = document.getElementById('registerBtn');
+            btn.innerHTML = '<span class="loading"></span> Creating account...';
+            btn.disabled = true;
+        });
+    </script>
+</body>
+</html>

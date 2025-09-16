@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>AI Assistance</h1>
+            <div class="header-actions">
+                <a href="{{ url_for('api.dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+            </div>
+        </div>
+        <div class="card">
+            <p class="small">Chat with AI about your plants, their health, and general gardening. This chat is not tied to a specific schedule.</p>
+            <div id="aiChat" class="ai-chat-container">
+                <div id="aiMessages" class="ai-messages"></div>
+                <div class="ai-actions">
+                    <form id="aiForm" class="ai-form" onsubmit="return false;">
+                        <input id="aiInput" type="text" placeholder="Ask anything about your plants or gardening..." class="ai-input" required>
+                        <button id="aiSend" class="btn btn-primary">Send</button>
+                    </form>
+                </div>
+                <div id="aiStatus" class="small"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function(){
+            const messagesEl = document.getElementById('aiMessages');
+            const input = document.getElementById('aiInput');
+            const sendBtn = document.getElementById('aiSend');
+            const statusEl = document.getElementById('aiStatus');
+
+            let busy = false;
+            function setBusy(v){
+                busy = !!v;
+                input.disabled = busy;
+                sendBtn.disabled = busy;
+            }
+            function setStatus(msg){ statusEl.textContent = msg || ''; }
+            function appendMessage(role, text){
+                const wrap = document.createElement('div');
+                wrap.className = 'ai-msg ' + (role === 'user' ? 'ai-user' : 'ai-assistant');
+                if(text){
+                    const p = document.createElement('div');
+                    p.textContent = text;
+                    wrap.appendChild(p);
+                }
+                messagesEl.appendChild(wrap);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
+            function loadHistory(){
+                fetch('/api/ai/chat').then(r=>r.json()).then(list=>{
+                    messagesEl.innerHTML='';
+                    (list||[]).forEach(m=> appendMessage(m.role, m.message));
+                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                });
+            }
+            sendBtn.addEventListener('click', function(){
+                if(busy) return;
+                const text = (input.value||'').trim();
+                if(!text) return;
+                appendMessage('user', text);
+                input.value='';
+                setStatus('Thinking...');
+                setBusy(true);
+                fetch('/api/ai/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message:text})})
+                    .then(r=>r.json()).then(res=>{
+                        if(res.error){ appendMessage('assistant', res.error); }
+                        if(res.assistant){ appendMessage('assistant', res.assistant); }
+                        if(!res.error && !res.assistant){ appendMessage('assistant', 'No response'); }
+                        setStatus('');
+                    })
+                    .catch(()=> setStatus('Error'))
+                    .finally(()=> setBusy(false));
+            });
+
+            loadHistory();
+        })();
+    </script>
+</body>
+</html>

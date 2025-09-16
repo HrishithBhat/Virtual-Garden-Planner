@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Essential Meta Tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Garden management dashboard with plants, marketplace, and profile features">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Page Title -->
+    <title>Dashboard - Garden Management System</title>
+    
+    <!-- External Resources -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <!-- Main Dashboard Container -->
+    <main class="dashboard-container" role="main">
+        
+        <!-- Dashboard Header -->
+        <header class="dashboard-header">
+            <h1>Garden Dashboard</h1>
+            
+            <!-- Header Actions -->
+            <div class="header-actions">
+                <!-- Main Navigation -->
+                <nav class="top-nav" role="navigation" aria-label="Main navigation">
+                    <button class="nav-btn active" 
+                            data-panel="plants"
+                            aria-label="View available plants">
+                        Plants
+                    </button>
+                    <button class="nav-btn" 
+                            data-panel="market"
+                            aria-label="Browse marketplace">
+                        Market
+                    </button>
+                    <button class="nav-btn" 
+                            data-panel="profile"
+                            aria-label="View profile">
+                        Profile
+                    </button>
+                    <button class="nav-btn" 
+                            data-panel="notifications"
+                            aria-label="View notifications">
+                        Notifications
+                    </button>
+                    <a href="{{ url_for('api.my_garden') }}" 
+                       class="nav-btn"
+                       aria-label="Go to my garden page">
+                        My Garden
+                    </a>
+                    <button class="nav-btn" 
+                            data-panel="filed"
+                            aria-label="View filed items">
+                        Filed
+                    </button>
+                </nav>
+                
+                <!-- Action Buttons -->
+                <a href="{{ url_for('api.ai_assistant_page') }}" 
+                   class="btn btn-primary"
+                   aria-label="Get AI assistance">
+                    AI Assistance
+                </a>
+                <a href="{{ url_for('api.logout') }}" 
+                   class="btn btn-danger"
+                   aria-label="Logout from dashboard">
+                    Logout
+                </a>
+            </div>
+        </header>
+
+        <!-- Content Panels -->
+        <div class="panels" role="tabpanel">
+            
+            <!-- Plants Panel -->
+            <section id="plants" class="panel active" role="tabpanel" aria-labelledby="plants-tab">
+                <h2 class="panel-title">Available Plants</h2>
+                <div class="plants-grid">
+                    {% for plant in plants %}
+                        <article class="plant-card">
+                            <img src="{{ plant.photo_url }}" 
+                                 alt="{{ plant.name }}" 
+                                 class="plant-photo" 
+                                 loading="lazy"
+                                 onerror="this.style.display='none'" />
+                            
+                            <h4 class="plant-name">{{ plant.name }}</h4>
+                            <div class="scientific">{{ plant.scientific_name }}</div>
+                            <div class="meta">
+                                Duration: {{ plant.duration_days }} days • Type: {{ plant.type }}
+                            </div>
+                            <p class="desc">{{ plant.description }}</p>
+                            
+                            <form method="POST" 
+                                  action="{{ url_for('api.garden_add', plant_id=plant.id) }}"
+                                  class="plant-form">
+                                <button type="submit" 
+                                        class="btn btn-primary"
+                                        aria-label="Add {{ plant.name }} to garden">
+                                    Add to Garden
+                                </button>
+                            </form>
+                        </article>
+                    {% else %}
+                        <div class="empty-state">No plants available.</div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Profile Panel -->
+            <section id="profile" class="panel" role="tabpanel" aria-labelledby="profile-tab">
+                <h2 class="panel-title">User Profile</h2>
+                <div class="card profile-panel">
+                    <div class="profile-name">
+                        {{ profile.username if profile else username }}
+                    </div>
+                    
+                    {% if profile and profile.email %}
+                        <div class="profile-email">{{ profile.email }}</div>
+                    {% endif %}
+                    
+                    {% if profile and profile.bio %}
+                        <p class="desc">{{ profile.bio }}</p>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('api.edit_profile') }}" 
+                       class="btn btn-primary"
+                       aria-label="Edit user profile">
+                        Edit Profile
+                    </a>
+                </div>
+            </section>
+
+            <!-- Notifications Panel -->
+            <section id="notifications" class="panel" role="tabpanel" aria-labelledby="notifications-tab">
+                <h2 class="panel-title">Notifications</h2>
+                <div class="card notifications-panel">
+                    
+                    <!-- Notifications Header -->
+                    <div class="notifications-header">
+                        <div class="small">Recent</div>
+                        <button id="clearNotificationsBtn" 
+                                class="btn small"
+                                aria-label="Clear all notifications">
+                            Clear All
+                        </button>
+                    </div>
+                    
+                    <!-- Notifications Content -->
+                    <div id="notificationsContainer" role="log" aria-live="polite">
+                        {% if notifications and notifications|length > 0 %}
+                            <ul class="notifications-list" role="list">
+                                {% for n in notifications %}
+                                    <li role="listitem">
+                                        {% if n.url %}
+                                            <a href="{{ n.url }}" 
+                                               aria-label="Notification: {{ n.message }}">
+                                                {{ n.message }}
+                                            </a>
+                                        {% else %}
+                                            {{ n.message }}
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <div class="empty">No notifications</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- My Garden Panel -->
+            <section id="mygarden" class="panel" role="tabpanel" aria-labelledby="mygarden-tab">
+                <h2 class="panel-title">My Garden</h2>
+                <div class="card garden-panel">
+                    {% if garden and garden|length > 0 %}
+                        <div class="garden-list">
+                            {% for item in garden %}
+                                <article class="garden-item">
+                                    <div class="garden-info">
+                                        <strong>{{ item.plant.name }}</strong>
+                                        <div class="scientific small">{{ item.plant.scientific_name }}</div>
+                                        
+                                        {% if item.nickname %}
+                                            <div class="small">Nickname: {{ item.nickname }}</div>
+                                        {% endif %}
+                                        
+                                        <div class="small">Quantity: {{ item.quantity or 1 }}</div>
+                                    </div>
+                                    
+                                    <div class="garden-actions">
+                                        {% if item.schedule_id %}
+                                            <a href="{{ url_for('api.garden_schedule_view', schedule_id=item.schedule_id) }}" 
+                                               class="btn btn-success small"
+                                               aria-label="View schedule for {{ item.plant.name }}">
+                                                View Schedule
+                                            </a>
+                                        {% else %}
+                                            <a href="{{ url_for('api.garden_schedule_generate', garden_id=item.garden_id) }}" 
+                                               class="btn btn-primary small"
+                                               aria-label="Create schedule for {{ item.plant.name }}">
+                                                Do Schedule
+                                            </a>
+                                        {% endif %}
+                                        
+                                        <form method="POST" 
+                                              action="{{ url_for('api.garden_remove', plant_id=item.plant_id) }}" 
+                                              class="inline-form">
+                                            <button type="submit" 
+                                                    class="btn btn-danger small"
+                                                    aria-label="Remove {{ item.plant.name }} from garden"
+                                                    onclick="return confirm('Remove {{ item.plant.name }} from garden?')">
+                                                Remove
+                                            </button>
+                                        </form>
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="empty-state">Your garden is empty. Add plants from the list.</p>
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- Market Panel -->
+            <section id="market" class="panel" role="tabpanel" aria-labelledby="market-tab">
+                <h2 class="panel-title">Marketplace</h2>
+                <div class="plants-grid">
+                    {% for product in products %}
+                        <article class="plant-card">
+                            <img src="{{ product.image_url }}" 
+                                 alt="{{ product.name }}" 
+                                 class="plant-photo" 
+                                 loading="lazy"
+                                 onerror="this.style.display='none'" />
+                            
+                            <h4 class="plant-name">{{ product.name }}</h4>
+                            <div class="meta">
+                                Type: {{ product.type }}
+                                {% if product.brand %} • Brand: {{ product.brand }}{% endif %}
+                            </div>
+                            <div class="meta">Price: {{ product.price }} / {{ product.unit }}</div>
+                            <div class="small">In stock: {{ product.quantity }}</div>
+                            
+                            {% if product.description %}
+                                <p class="desc">{{ product.description }}</p>
+                            {% endif %}
+                            
+                            <a href="{{ product.buy_url }}" 
+                               target="_blank" 
+                               rel="noopener noreferrer" 
+                               class="btn btn-success"
+                               aria-label="Buy {{ product.name }} (opens in new tab)">
+                                Buy
+                            </a>
+                        </article>
+                    {% else %}
+                        <div class="empty-state">No products available.</div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Filed Panel -->
+            <section id="filed" class="panel" role="tabpanel" aria-labelledby="filed-tab">
+                <h2 class="panel-title">Filed Items</h2>
+                <div class="card filed-panel">
+                    <p class="desc">
+                        This panel holds extra fields and details related to the selected plant or garden item. 
+                        Click a plant or garden entry to view or edit filed details.
+                    </p>
+                    
+                    <div class="filed-list">
+                        {% for plant in plants %}
+                            <article class="filed-row">
+                                <strong>{{ plant.name }}</strong>
+                                <div class="small">
+                                    Type: {{ plant.type }} • Duration: {{ plant.duration_days }}d
+                                </div>
+                                <a href="{{ url_for('api.garden_add', plant_id=plant.id) }}" 
+                                   class="btn btn-primary small"
+                                   aria-label="Add {{ plant.name }} to garden from filed items">
+                                    Add to Garden
+                                </a>
+                            </article>
+                        {% else %}
+                            <div class="empty-state">No entries</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Navigation functionality
+            const buttons = document.querySelectorAll('.nav-btn');
+            const panels = document.querySelectorAll('.panel');
+            
+            function showPanel(name) {
+                panels.forEach(p => { 
+                    p.classList.toggle('active', p.id === name); 
+                });
+                buttons.forEach(b => { 
+                    b.classList.toggle('active', b.dataset.panel === name); 
+                });
+            }
+            
+            buttons.forEach(btn => {
+                if (btn.dataset.panel) {
+                    btn.addEventListener('click', () => showPanel(btn.dataset.panel));
+                }
+            });
+            
+            // Default panel
+            showPanel('plants');
+
+            // Clear notifications functionality
+            const clearBtn = document.getElementById('clearNotificationsBtn');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function() {
+                    if (!confirm('Clear all notifications?')) return;
+                    
+                    fetch("{{ url_for('api.clear_notifications') }}", {
+                        method: 'POST', 
+                        credentials: 'same-origin'
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        const container = document.getElementById('notificationsContainer');
+                        if (data && data.message) {
+                            container.innerHTML = '<div class="empty">No notifications</div>';
+                        } else {
+                            alert('Failed to clear notifications');
+                        }
+                    })
+                    .catch(err => { 
+                        alert('Error clearing notifications'); 
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

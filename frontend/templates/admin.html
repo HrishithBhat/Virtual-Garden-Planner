@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - User Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="dashboard-container admin-container">
+        <div class="dashboard-header">
+            <h1>Admin Panel</h1>
+            <div class="admin-actions">
+                <a href="{{ url_for('api.admin_plants') }}" class="btn btn-primary">Manage Plants</a>
+                <a href="{{ url_for('api.admin_market') }}" class="btn btn-primary">Manage Market</a>
+                <a href="{{ url_for('api.logout') }}" class="btn btn-danger">Logout</a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="error" style="background: #e6f7ff; color: #055160; border-left-color: #0d6efd;">
+                    {% for msg in messages %}
+                        <div>{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section class="admin-section">
+            <div class="admin-column admin-left">
+                <h3>Existing Users</h3>
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.role if user.role else 'user' }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('api.admin_delete_user', user_id=user.id) }}" onsubmit="return confirm('Delete user {{ user.username }}?');">
+                                    <button type="submit" class="btn btn-danger small">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4">No users found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="admin-column admin-right">
+                <h3>Add New User</h3>
+                <form method="POST" action="{{ url_for('api.admin_add_user') }}" class="add-user-form">
+                    <div class="form-group">
+                        <input type="text" name="username" placeholder="Username" required minlength="3">
+                    </div>
+                    <div class="form-group">
+                        <input type="email" name="email" placeholder="Email" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" name="password" placeholder="Password (min 6 characters)" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="role">Role</label>
+                        <select name="role" id="role" class="form-select">
+                            <option value="user">User</option>
+                            <option value="sub_admin">Sub-admin (Plants)</option>
+                            <option value="market_sub_admin">Sub-admin (Marketplace)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success">Add User</button>
+                </form>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

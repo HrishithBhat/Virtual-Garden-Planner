@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Schedule</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Create Schedule</h1>
+            <a href="{{ url_for('api.my_garden') }}" class="btn btn-primary">Back to My Garden</a>
+            <a href="{{ url_for('api.logout') }}" class="btn btn-danger">Logout</a>
+        </div>
+
+        <div class="card">
+            <h3>{{ plant.name }} <span class="small">({{ plant.scientific_name }})</span></h3>
+            {% if plant.photo_url %}
+                <img src="{{ plant.photo_url }}" alt="{{ plant.name }}" class="plant-photo-medium">
+            {% endif %}
+            <p class="small">Duration: {{ plant.duration_days }} days • Type: {{ plant.type }}</p>
+            <p class="desc">{{ plant.description }}</p>
+
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('api.garden_schedule_create', garden_id=item.garden_id) }}" id="generateForm">
+                <input type="hidden" name="inline" value="1">
+                <div class="form-group">
+                    <label for="stage" class="form-label">Plant stage</label>
+                    <select id="stage" name="stage" class="form-select">
+                        <option value="seed">Seed</option>
+                        <option value="seedling">Seedling</option>
+                        <option value="vegetative">Vegetative</option>
+                        <option value="flowering">Flowering</option>
+                        <option value="fruiting">Fruiting</option>
+                        <option value="mature">Mature</option>
+                    </select>
+                </div>
+                <p>Click the button below to generate a day-by-day care schedule using Gemini AI. The AI will receive the full plant and your garden item data and render the schedule below with checkboxes for each day.</p>
+                <div class="generate-actions">
+                    <button type="submit" class="btn btn-primary" id="generateBtn">Generate Schedule</button>
+                    <span id="generateStatus" class="generate-status generate-status-offset" aria-live="polite"></span>
+                </div>
+                <div id="inlineError" aria-live="assertive"></div>
+            </form>
+
+            {% if schedule and data %}
+                <hr />
+                <h4>Generated Schedule</h4>
+                <form method="POST" action="#" id="schedule-checklist-form">
+                    <div class="schedule-list">
+                        {% for day in data %}
+                            <div class="schedule-day">
+                                <label>
+                                    <input type="checkbox" name="day_{{ loop.index0 }}" class="day-checkbox">
+                                    Day {{ day.day if day.day is defined else loop.index }}:
+                                </label>
+                                <div class="tasks">
+                                    {% for t in day.tasks %}
+                                        <div class="task">- {{ t }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <p class="small">You can check off tasks as you complete them. These checkboxes are client-side only.</p>
+                </form>
+            {% endif %}
+
+            <script>
+                (function(){
+                    const form = document.getElementById('generateForm');
+                    const btn = document.getElementById('generateBtn');
+                    const status = document.getElementById('generateStatus');
+                    const inlineError = document.getElementById('inlineError');
+
+                    function setLoading(loading){
+                        if(loading){
+                            btn.disabled = true;
+                            btn.innerText = 'Generating...';
+                            status.innerHTML = '<span class="loading-spinner" aria-hidden="true"></span><span class="small">Generating</span>';
+                            inlineError.innerHTML = '';
+                        } else {
+                            btn.disabled = false;
+                            btn.innerText = 'Generate Schedule';
+                            status.innerHTML = '';
+                        }
+                    }
+
+                    form.addEventListener('submit', function(e){
+                        e.preventDefault();
+                        setLoading(true);
+                        const action = form.getAttribute('action');
+                        const formData = new FormData(form);
+
+                        fetch(action, {
+                            method: 'POST',
+                            body: formData,
+                            credentials: 'same-origin'
+                        }).then(async res => {
+                            const text = await res.text();
+                            if(!res.ok){
+                                // Attempt to extract server-rendered error message from response HTML
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(text, 'text/html');
+                                const err = doc.querySelector('.error');
+                                inlineError.innerHTML = err ? '<div class="error-inline">'+err.textContent+'</div>' : '<div class="error-inline">Failed to generate schedule (server error)</div>';
+                                setLoading(false);
+                                return;
+                            }
+                            // Replace the current card with the returned card HTML
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(text, 'text/html');
+                            const newCard = doc.querySelector('.card');
+                            const currentCard = form.closest('.card');
+                            if(newCard && currentCard){
+                                currentCard.replaceWith(newCard);
+                            } else {
+                                // fallback: reload full page
+                                window.location.reload();
+                            }
+                        }).catch(err => {
+                            inlineError.innerHTML = '<div class="error-inline">Network error: '+(err.message||'')+'</div>';
+                        }).finally(()=>{
+                            setLoading(false);
+                        });
+                    });
+                })();
+            </script>
+        </div>
+    </div>
+</body>
+</html>

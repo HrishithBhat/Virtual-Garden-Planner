@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Garden</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>My Garden</h1>
+            <a href="{{ url_for('api.dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+            <a href="{{ url_for('api.logout') }}" class="btn btn-danger">Logout</a>
+        </div>
+
+        <div class="garden-list-page">
+            {% if garden and garden|length > 0 %}
+                <div class="garden-list">
+                    {% for item in garden %}
+                    <div class="garden-item">
+                        <div>
+                            <strong>{{ item.plant.name }}</strong>
+                            <div class="scientific small">{{ item.plant.scientific_name }}</div>
+                        </div>
+                        <div class="garden-actions">
+                            <button class="btn btn-primary small" data-garden-id="{{ item.garden_id }}" onclick="showDetails({{ item.garden_id }})">Details</button>
+                            {% if item.schedule_id %}
+                                <a href="{{ url_for('api.garden_schedule_view', schedule_id=item.schedule_id) }}" class="btn btn-success small">View Schedule</a>
+                            {% else %}
+                                <a href="{{ url_for('api.garden_schedule_generate', garden_id=item.garden_id) }}" class="btn btn-primary small">Do Schedule</a>
+                            {% endif %}
+                            <form method="POST" action="{{ url_for('api.garden_remove', plant_id=item.plant_id) }}" class="inline-form" style="display:inline-block;margin-left:0.5rem;">
+                                <button type="submit" class="btn btn-danger small">Remove</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>Your garden is empty.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Details modal -->
+    <div id="detailsModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="hideDetails()">&times;</span>
+            <div id="detailsBody">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        function showDetails(gardenId) {
+            const modal = document.getElementById('detailsModal');
+            const body = document.getElementById('detailsBody');
+            body.innerHTML = 'Loading...';
+            modal.style.display = 'block';
+
+            fetch('{{ url_for('api.get_garden_item_api', garden_id=0) }}'.replace('/0', '/' + gardenId))
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) { body.innerText = data.error; return; }
+                    const item = data;
+                    let html = `<h3>${item.plant.name}</h3>`;
+                    html += `<p><strong>Scientific:</strong> ${item.plant.scientific_name}</p>`;
+                    html += `<p><strong>Duration (days):</strong> ${item.plant.duration_days}</p>`;
+                    html += `<p><strong>Type:</strong> ${item.plant.type}</p>`;
+                    if (item.nickname) html += `<p><strong>Nickname:</strong> ${item.nickname}</p>`;
+                    if (item.planted_on) html += `<p><strong>Planted on:</strong> ${item.planted_on}</p>`;
+                    if (item.quantity) html += `<p><strong>Quantity:</strong> ${item.quantity}</p>`;
+                    if (item.location) html += `<p><strong>Location:</strong> ${item.location}</p>`;
+                    if (item.notes) html += `<p><strong>Notes:</strong> ${item.notes}</p>`;
+                    if (item.last_watered) html += `<p><strong>Last watered:</strong> ${item.last_watered}</p>`;
+                    if (item.plant.photo_url) html += `<img src="${item.plant.photo_url}" style="max-width:100%;margin-top:0.5rem;">`;
+                    body.innerHTML = html;
+                }).catch(err => {
+                    body.innerText = 'Failed to load details';
+                });
+        }
+        function hideDetails(){ document.getElementById('detailsModal').style.display='none'; }
+        window.onclick = function(e){ if(e.target == document.getElementById('detailsModal')) hideDetails(); }
+    </script>
+</body>
+</html>
