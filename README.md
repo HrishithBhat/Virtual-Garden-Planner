@@ -1,4 +1,4 @@
-# AI-Garden
+# Virtual Garden Planner
 
 AI-Garden is a complete gardening companion that leverages artificial intelligence to help users manage their plants, diagnose diseases, and receive personalized care schedules.
 
