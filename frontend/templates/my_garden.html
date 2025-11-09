@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Garden</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='my_garden.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>My Garden</h1>
+            <div class="admin-actions">
+                <button class="btn btn-primary" id="openCreateModal">Create Plant</button>
+                <a href="{{ url_for('api.dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+                <a href="{{ url_for('api.logout') }}" class="btn btn-danger">Logout</a>
+            </div>
+        </div>
+
+        <div class="garden-list-page">
+            {% if garden and garden|length > 0 %}
+                <div class="garden-list">
+                    {% for item in garden %}
+                    <div class="garden-item">
+                        <div>
+                            <strong>{{ item.plant.name }}</strong>
+                            <div class="scientific small">{{ item.plant.scientific_name }}</div>
+                        </div>
+                        <div class="garden-actions">
+                            <button class="btn btn-primary small" data-garden-id="{{ item.garden_id }}" onclick="showDetails('{{ item.garden_id }}')">Details</button>
+                            {% if item.schedule_id %}
+                                <a href="{{ url_for('api.garden_schedule_view', schedule_id=item.schedule_id) }}" class="btn btn-success small">View Schedule</a>
+                            {% else %}
+                                <a href="{{ url_for('api.garden_schedule_generate', garden_id=item.garden_id) }}" class="btn btn-primary small">Do Schedule</a>
+                            {% endif %}
+                            {% if item.is_creator %}
+                            <a href="{{ url_for('api.garden_edit', garden_id=item.garden_id) }}" class="btn btn-primary small">Edit</a>
+                            <form method="POST" action="{{ url_for('api.garden_remove', plant_id=item.plant_id) }}" class="inline-form">
+                                <button type="submit" class="btn btn-danger small">Delete</button>
+                            </form>
+                            {% else %}
+                            <form method="POST" action="{{ url_for('api.garden_remove', plant_id=item.plant_id) }}" class="inline-form">
+                                <button type="submit" class="btn btn-danger small">Remove</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>Your garden is empty.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Details modal -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="hideDetails()">&times;</span>
+            <div id="detailsBody">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Create Plant modal -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeCreate">&times;</span>
+            <h3>Create a Plant</h3>
+            <form method="POST" action="{{ url_for('api.garden_create_plant') }}" class="add-user-form">
+                <div class="form-group">
+                    <label class="small" for="cp_name">Name<span style="color:red">*</span></label>
+                    <input id="cp_name" name="name" type="text" placeholder="e.g., Tomato" required>
+                </div>
+                <div class="form-group">
+                    <label class="small" for="cp_type">Type<span style="color:red">*</span></label>
+                    <input id="cp_type" name="type" type="text" placeholder="e.g., vegetable" required>
+                </div>
+                <div class="form-group">
+                    <label class="small" for="cp_scientific">Scientific name</label>
+                    <input id="cp_scientific" name="scientific_name" type="text" placeholder="optional">
+                </div>
+                <div class="form-group">
+                    <label class="small" for="cp_duration">Duration (days)</label>
+                    <input id="cp_duration" name="duration_days" type="number" min="0" placeholder="optional">
+                </div>
+                <div class="form-group">
+                    <label class="small" for="cp_photo">Photo URL</label>
+                    <input id="cp_photo" name="photo_url" type="url" placeholder="https://... (optional)">
+                </div>
+                <div class="form-group">
+                    <label class="small" for="cp_desc">Description</label>
+                    <textarea id="cp_desc" name="description" rows="3" placeholder="optional"></textarea>
+                </div>
+                <div class="form-group controls-row">
+                    <button type="submit" class="btn btn-success">Create</button>
+                    <button type="button" class="btn" id="cancelCreate">Cancel</button>
+                </div>
+                <div class="small" style="margin-top:6px">If you only provide name and type, AI will auto-complete the rest.</div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showDetails(gardenId) {
+            const modal = document.getElementById('detailsModal');
+            const body = document.getElementById('detailsBody');
+            body.innerHTML = 'Loading...';
+            modal.style.display = 'block';
+
+            fetch("{{ url_for('api.get_garden_item_api', garden_id=0) }}".replace('/0', '/' + gardenId))
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) { body.innerText = data.error; return; }
+                    const item = data;
+                    let html = `<h3>${item.plant.name}</h3>`;
+                    html += `<p><strong>Scientific:</strong> ${item.plant.scientific_name}</p>`;
+                    html += `<p><strong>Duration (days):</strong> ${item.plant.duration_days}</p>`;
+                    html += `<p><strong>Type:</strong> ${item.plant.type}</p>`;
+                    if (item.nickname) html += `<p><strong>Nickname:</strong> ${item.nickname}</p>`;
+                    if (item.planted_on) html += `<p><strong>Planted on:</strong> ${item.planted_on}</p>`;
+                    if (item.quantity) html += `<p><strong>Quantity:</strong> ${item.quantity}</p>`;
+                    if (item.location) html += `<p><strong>Location:</strong> ${item.location}</p>`;
+                    if (item.notes) html += `<p><strong>Notes:</strong> ${item.notes}</p>`;
+                    if (item.last_watered) html += `<p><strong>Last watered:</strong> ${item.last_watered}</p>`;
+                    if (item.plant.photo_url) html += `<img src="${item.plant.photo_url}" class=\"modal-image\">`;
+                    body.innerHTML = html;
+                }).catch(err => {
+                    body.innerText = 'Failed to load details';
+                });
+        }
+        function hideDetails(){ document.getElementById('detailsModal').style.display='none'; }
+        window.onclick = function(e){
+            if(e.target == document.getElementById('detailsModal')) hideDetails();
+            if(e.target == document.getElementById('createModal')) document.getElementById('createModal').style.display='none';
+        }
+        const openCreate = document.getElementById('openCreateModal');
+        const createModal = document.getElementById('createModal');
+        const closeCreate = document.getElementById('closeCreate');
+        const cancelCreate = document.getElementById('cancelCreate');
+        if (openCreate){ openCreate.addEventListener('click', ()=>{ createModal.style.display='block'; }); }
+        if (closeCreate){ closeCreate.addEventListener('click', ()=>{ createModal.style.display='none'; }); }
+        if (cancelCreate){ cancelCreate.addEventListener('click', ()=>{ createModal.style.display='none'; }); }
+    </script>
+    <script>
+        document.addEventListener('submit', function(e){
+            const form = e.target;
+            if (!(form instanceof HTMLFormElement)) return;
+            if (!form.matches('form[action*="/garden/remove/"]')) return;
+            e.preventDefault();
+            const itemEl = form.closest('.garden-item');
+            const parent = itemEl ? itemEl.parentNode : null;
+            const next = itemEl ? itemEl.nextSibling : null;
+            if (itemEl) itemEl.remove();
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'fetch' },
+                credentials: 'same-origin'
+            })
+            .then(res => res.json().then(d => ({ ok: res.ok, data: d })).catch(()=> ({ ok: res.ok, data: {} })))
+            .then(({ok, data}) => {
+                const failed = !ok || (data && (data.error || data.ok === false));
+                if (failed && parent){ parent.insertBefore(itemEl, next); alert((data && (data.message||data.error)) || 'Failed to remove'); }
+            })
+            .catch(()=>{ if (parent){ parent.insertBefore(itemEl, next); alert('Failed to remove'); } });
+        });
+    </script>
+</body>
+</html>

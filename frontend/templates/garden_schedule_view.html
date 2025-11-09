@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Schedule</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='garden_schedule_view.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='schedule_creator.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Schedule</h1>
+            <div class="header-actions">
+                <button id="aiScheduleToggle" class="btn btn-primary small" aria-controls="aiAssistantCard" aria-expanded="false">AI</button>
+                <a href="{{ url_for('api.my_garden') }}" class="btn btn-primary">Back to My Garden</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Schedule created on {{ schedule.created_at }}</h3>
+            {% if plant %}
+                <div class="plant-summary">
+                    <h4 class="schedule-title">{{ plant.name }} <span class="small">({{ plant.scientific_name }})</span></h4>
+                    {% if plant.photo_url %}
+                        <img src="{{ plant.photo_url }}" alt="{{ plant.name }}" class="plant-photo-small">
+                    {% endif %}
+                    <p class="small">Duration: {{ plant.duration_days }} days • Type: {{ plant.type }}</p>
+                    <p class="desc">{{ plant.description }}</p>
+                </div>
+            {% endif %}
+
+            <!-- AI Assistant moved to top (hidden until AI button pressed) -->
+            <div class="card card-spaced hidden" id="aiAssistantCard">
+                <h3>AI Assistant</h3>
+                <p class="small">Ask about this plant and its schedule. Each schedule has its own chat.</p>
+                <div id="aiChat" class="ai-chat-container" data-schedule-id="{{ schedule.id }}">
+                    <div id="aiMessages" class="ai-messages"></div>
+                    <div class="ai-actions">
+                        <form id="aiForm" class="ai-form" onsubmit="return false;">
+                            <input id="aiInput" type="text" placeholder="Ask a question about today's tasks, next steps, or this plant..." class="ai-input" required>
+                            <button id="aiSend" class="btn btn-primary btn-auto">Send</button>
+                        </form>
+                        <form id="aiUploadForm" class="ai-upload" onsubmit="return false;">
+                            <input id="aiImage" type="file" accept="image/*" capture="environment">
+                            <button id="aiUploadBtn" class="btn btn-success btn-auto">Upload Image</button>
+                        </form>
+                    </div>
+                    <div id="aiStatus" class="small"></div>
+                </div>
+            </div>
+
+            <h4>Schedule</h4>
+            <div class="schedule-results">
+                <div class="schedule-background">
+                    <div class="schedule-grid" id="scheduleList" data-schedule-id="{{ schedule.id }}" data-created-at="{{ schedule.created_at }}" data-duration="{{ plant.duration_days }}">
+                        {% for day in data %}
+                            {% set day_num = day.day if day.day is defined else loop.index %}
+                            {% set day_idx = loop.index0 %}
+                            <div class="schedule-card" id="day-{{ day_num }}" data-day="{{ day_num }}">
+                                <div class="day-pill">Day {{ day_num }}</div>
+                                <div class="card-body">
+                                    <div class="day-title">{{ day.title or 'Care' }}</div>
+                                    <div class="day-icon" aria-hidden="true">
+                                        {% set t0 = (day.tasks[0] if day.tasks) or '' %}
+                                        {% if 'water' in t0|lower %}
+                                            <img src="{{ url_for('static', filename='img/icons/water.svg') }}" alt="water" class="day-icon-img">
+                                        {% elif 'fertil' in t0|lower %}
+                                            <img src="{{ url_for('static', filename='img/icons/leaf.svg') }}" alt="fertilize" class="day-icon-img">
+                                        {% elif 'prun' in t0|lower %}
+                                            <img src="{{ url_for('static', filename='img/icons/shear.svg') }}" alt="prune" class="day-icon-img">
+                                        {% elif 'pest' in t0|lower or 'inspect' in t0|lower %}
+                                            <img src="{{ url_for('static', filename='img/icons/bug.svg') }}" alt="inspect" class="day-icon-img">
+                                        {% else %}
+                                            <img src="{{ url_for('static', filename='img/icons/care.svg') }}" alt="care" class="day-icon-img">
+                                        {% endif %}
+                                    </div>
+                                    <div class="tasks-grid">
+                                        {% set tasks_for_day = tasks_map.get(day_num) if tasks_map else None %}
+                                        {% if tasks_for_day %}
+                                            {% for t in tasks_for_day %}
+                                                <label class="task-row">
+                                                    <input type="checkbox" class="task-checkbox" data-day="{{ day_num }}" data-task-index="{{ t.task_index }}" {% if t.completed %}checked{% endif %}>
+                                                    <span class="task-text">{{ t.task_text }}</span>
+                                                </label>
+                                            {% endfor %}
+                                        {% else %}
+                                            {% for t in day.tasks %}
+                                                <label class="task-row">
+                                                    <input type="checkbox" class="task-checkbox" data-day="{{ day_num }}" data-task-index="{{ loop.index0 }}">
+                                                    <span class="task-text">{{ t }}</span>
+                                                </label>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <form id="extendForm" method="POST" action="{{ url_for('api.garden_schedule_extend', schedule_id=schedule.id) }}" class="generate-actions extend-actions is-hidden">
+                <button type="submit" class="btn btn-primary" id="extendBtn">Continue next 60 days</button>
+                <span id="extendStatus" class="small"></span>
+            </form>
+        </div>
+
+    </div>
+    <script>
+        (function(){
+            const list = document.getElementById('scheduleList');
+            const info = document.getElementById('dayInfo');
+            if(!list) return;
+            const createdAt = list.dataset.createdAt;
+            const duration = parseInt(list.dataset.duration) || 0;
+            let currentDay = null;
+            try{
+                if(createdAt){
+                    // robust parse for server timestamps like 'YYYY-MM-DD HH:mm:ss.ffffff'
+                    function parseCreatedAt(s){
+                        if(!s) return new Date(s);
+                        if(s.indexOf('T')===-1 && s.indexOf(' ')!==-1) s = s.replace(' ', 'T');
+                        // trim microseconds to milliseconds
+                        s = s.replace(/\.(\d{3})\d+/,'.$1');
+                        return new Date(s);
+                    }
+                    const start = parseCreatedAt(createdAt);
+                    const now = new Date();
+                    // compute day difference in local dates (ignore time of day)
+                    const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+                    const nowUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+                    const diffDays = Math.floor((nowUtc - startUtc) / (24*60*60*1000));
+                    currentDay = diffDays + 1; // day 1 is start date
+                    if(currentDay < 1) currentDay = 1;
+                }
+            }catch(e){
+                console.error('Error parsing schedule date', e);
+            }
+            // clamp
+            if(currentDay === null) currentDay = duration || 1;
+            if(duration && currentDay > duration) currentDay = duration;
+
+            // update info text (guard if element is missing)
+            if(info) info.textContent = 'You can check tasks for Day ' + currentDay + ' and earlier.';
+
+            // Ensure schedule cards reflect currentDay at card level (disable future days)
+            document.querySelectorAll('.schedule-card').forEach(card => {
+                const d = parseInt(card.dataset.day);
+                if(isNaN(d)) return;
+                if(d > currentDay){
+                    card.classList.add('disabled-day');
+                    // ensure pointer-events blocked at card level too
+                    card.style.pointerEvents = 'none';
+                } else {
+                    card.classList.remove('disabled-day');
+                    card.style.pointerEvents = '';
+                }
+            });
+
+            // Show extend button when a block is completed and more days remain
+            const scheduleLen = list.querySelectorAll('.schedule-day').length;
+            const totalDuration = parseInt(list.dataset.duration) || 0;
+            const extendForm = document.getElementById('extendForm');
+            const canExtend = (scheduleLen < totalDuration) && (currentDay > scheduleLen);
+            if (extendForm) extendForm.classList.toggle('is-hidden', !canExtend);
+            const extendStatus = document.getElementById('extendStatus');
+            const extendBtn = document.getElementById('extendBtn');
+            if (extendForm){
+                extendForm.addEventListener('submit', function(){
+                    if (extendBtn){ extendBtn.disabled = true; extendBtn.textContent = 'Extending...'; }
+                    if (extendStatus){ extendStatus.textContent = ''; }
+                });
+            }
+
+            // enable/disable checkboxes and apply initial day state
+            const taskCheckboxes = list.querySelectorAll('.task-checkbox');
+
+            function updateDayStatus(dayNum){
+                const card = document.getElementById('day-' + dayNum);
+                if(!card) return;
+                const boxes = Array.from(card.querySelectorAll('.task-checkbox'));
+                if(boxes.length === 0) {
+                    card.classList.remove('done-day','missed-day','pending-day');
+                    return;
+                }
+                // treat permanently marked checkboxes as checked
+                const allChecked = boxes.length > 0 && boxes.every(b => (b.checked === true) || (b.getAttribute && (b.getAttribute('data-permanent') === '1' || b.dataset.permanent === '1')) || b.hasAttribute('checked')) ;
+
+                // clear status classes first
+                card.classList.remove('done-day','missed-day','pending-day');
+
+                if(allChecked){
+                    card.classList.add('done-day');
+                    // lock all boxes for this day as permanent
+                    boxes.forEach(b => {
+                        b.disabled = true;
+                        b.dataset.permanent = '1';
+                        const row = b.closest('.task-row')||b.closest('label');
+                        if(row) row.classList.add('permanent-checked');
+                    });
+                } else if(dayNum < currentDay){
+                    // past day with incomplete tasks -> red (missed)
+                    card.classList.add('missed-day');
+                } else if(dayNum === currentDay){
+                    // today's tasks pending -> orange
+                    card.classList.add('pending-day');
+                } else {
+                    // future days: no status
+                }
+            }
+
+            taskCheckboxes.forEach(cb => {
+                const day = parseInt(cb.dataset.day);
+                if(!isNaN(day)){
+                    // allow current day and earlier to be interactive, disable only future days
+                    if(day > currentDay){
+                        cb.disabled = true;
+                        const parent = cb.closest('.schedule-card');
+                        if(parent) parent.classList.add('disabled-day');
+                    } else {
+                        // if this checkbox was already checked (from previous sessions), lock it as permanent
+                        if(cb.checked){
+                            cb.disabled = true;
+                            cb.dataset.permanent = '1';
+                            const row = cb.closest('.task-row') || cb.closest('label');
+                            if(row) row.classList.add('permanent-checked');
+                        } else {
+                            cb.disabled = false;
+                        }
+                        const parent = cb.closest('.schedule-card');
+                        if(parent) parent.classList.remove('disabled-day');
+                    }
+                }
+            });
+
+            // handle checkbox change to persist state
+            const scheduleId = parseInt(list.dataset.scheduleId);
+            function showInlineMessage(msg){
+                let el = document.getElementById('inlineMsg');
+                if(!el){
+                    el = document.createElement('div');
+                    el.id = 'inlineMsg';
+                    el.className = 'inline-msg';
+                    list.parentNode.insertBefore(el, list.nextSibling);
+                }
+                el.textContent = msg;
+                setTimeout(()=>{ el.textContent = '' }, 4000);
+            }
+
+            // Global guard: prevent any clicks inside disabled day cards (capture phase)
+            document.addEventListener('click', function(e){
+                if(e.target && e.target.closest && e.target.closest('.schedule-card.disabled-day')){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const dd = e.target.closest('.schedule-card.disabled-day');
+                    const dayNumBlocked = dd ? dd.dataset.day : null;
+                    if(dayNumBlocked) showInlineMessage('This day ('+dayNumBlocked+') is not yet available.');
+                    return false;
+                }
+            }, true);
+
+            taskCheckboxes.forEach(cb => {
+                const day = parseInt(cb.dataset.day);
+                const label = cb.closest('.task-row') || cb.closest('label');
+                // prevent clicks on future-day labels (which could toggle the checkbox)
+                if(label){
+                    label.addEventListener('click', function(e){
+                        if(!isNaN(day) && day > currentDay){
+                            e.preventDefault();
+                            e.stopPropagation();
+                            showInlineMessage('This task is for a future day and becomes available on Day ' + day + '.');
+                            return false;
+                        }
+                    }, true);
+                }
+
+                cb.addEventListener('change', function(e){
+                    const checkbox = this;
+                    const day = parseInt(checkbox.dataset.day);
+                    const task_index = parseInt(checkbox.dataset.taskIndex);
+                    // guard: if this is a future day, revert and ignore
+                    if(!isNaN(day) && day > currentDay){
+                        checkbox.checked = false;
+                        showInlineMessage('Cannot modify future tasks.');
+                        return;
+                    }
+                    const completed = checkbox.checked;
+                    fetch("{{ url_for('api.garden_schedule_task_toggle') }}", {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({schedule_id: scheduleId, day: day, task_index: task_index, completed: completed})
+                    }).then(res => res.json()).then(data => {
+                        if(data && data.message){
+                            showInlineMessage(data.message);
+                        } else if(data && data.error){
+                            showInlineMessage('Error: '+data.error);
+                        }
+                        // If we just marked completed, lock the checkbox as permanent
+                        try{
+                            if(completed){
+                                const checkboxEl = checkbox;
+                                checkboxEl.disabled = true;
+                                checkboxEl.dataset.permanent = '1';
+                                const row = checkboxEl.closest('.task-row') || checkboxEl.closest('label');
+                                if(row) row.classList.add('permanent-checked');
+                            }
+                        }catch(e){/* ignore */}
+                        // Update day status after toggle
+                        updateDayStatus(day);
+                        // persist local state as backup
+                        try{ saveLocalScheduleState(); }catch(e){}
+                        // debug/log
+                        try{ console.log('Toggle response', data); }catch(e){}
+                    }).catch(err => {
+                        // network failure -> save locally and keep UI
+                        if(completed){ checkbox.disabled = true; checkbox.dataset.permanent = '1'; const row = checkbox.closest('.task-row')||checkbox.closest('label'); if(row) row.classList.add('permanent-checked'); }
+                        updateDayStatus(day);
+                        try{ saveLocalScheduleState(); }catch(e){}
+                        console.error('Toggle failed', err);
+                        showInlineMessage('Network error — saved locally');
+                    });
+                });
+            });
+
+            // load any local state (apply before final update pass)
+            loadLocalScheduleState();
+
+            // initialize day statuses for all cards
+            document.querySelectorAll('.schedule-card').forEach(c => {
+                const d = parseInt(c.dataset.day);
+                if(!isNaN(d)) updateDayStatus(d);
+            });
+
+            // local save/load functions
+            function saveLocalScheduleState(){
+                const state = { days: [] };
+                document.querySelectorAll('.schedule-card').forEach(card=>{
+                    const d = parseInt(card.dataset.day) || 0;
+                    const tasks = [];
+                    Array.from(card.querySelectorAll('.task-row')).forEach((row, idx)=>{
+                        const cb = row.querySelector('input[type="checkbox"]');
+                        tasks.push({ index: idx, completed: !!(cb && (cb.checked||cb.dataset.permanent==='1')) });
+                    });
+                    state.days.push({ day: d, tasks });
+                });
+                try{ localStorage.setItem('schedule_state_'+scheduleId, JSON.stringify(state)); }catch(e){}
+            }
+            function loadLocalScheduleState(){
+                try{
+                    const raw = localStorage.getItem('schedule_state_'+scheduleId);
+                    if(!raw) return;
+                    const st = JSON.parse(raw);
+                    (st.days||[]).forEach(d=>{
+                        const card = document.querySelector('.schedule-card[data-day="'+d.day+'"]'); if(!card) return;
+                        (d.tasks||[]).forEach((t, idx)=>{
+                            const row = card.querySelectorAll('.task-row')[idx]; if(!row) return;
+                            const cb = row.querySelector('input[type="checkbox"]'); if(!cb) return;
+                            if(t.completed){ cb.checked = true; cb.disabled = true; cb.dataset.permanent = '1'; const r = cb.closest('.task-row')||cb.closest('label'); if(r) r.classList.add('permanent-checked'); }
+                        });
+                    });
+                }catch(e){}
+            }
+
+            // load any local state (apply before final update pass)
+            loadLocalScheduleState();
+        })();
+    </script>
+    <script>
+        (function(){
+            const container = document.getElementById('aiChat');
+            if(!container) return;
+            const scheduleId = parseInt(container.dataset.scheduleId);
+            const messagesEl = document.getElementById('aiMessages');
+            const input = document.getElementById('aiInput');
+            const sendBtn = document.getElementById('aiSend');
+            const statusEl = document.getElementById('aiStatus');
+            const uploadInput = document.getElementById('aiImage');
+            const uploadBtn = document.getElementById('aiUploadBtn');
+
+            let busy = false;
+            function setBusy(v){
+                busy = !!v;
+                input.disabled = busy;
+                sendBtn.disabled = busy;
+                uploadBtn.disabled = busy;
+                uploadInput.disabled = busy;
+            }
+            function appendMessage(role, text, image){
+                const wrap = document.createElement('div');
+                wrap.className = 'ai-msg ' + (role === 'user' ? 'ai-user' : 'ai-assistant');
+                if(image){
+                    const img = document.createElement('img');
+                    img.src = image; img.alt = role + ' image';
+                    img.className = 'ai-image';
+                    wrap.appendChild(img);
+                }
+                if(text){
+                    const p = document.createElement('div');
+                    p.textContent = text;
+                    wrap.appendChild(p);
+                }
+                messagesEl.appendChild(wrap);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
+            function setStatus(msg){ statusEl.textContent = msg || ''; }
+            function loadHistory(){
+                fetch(`/api/schedule/${scheduleId}/chat`).then(r=>r.json()).then(list=>{
+                    messagesEl.innerHTML='';
+                    (list||[]).forEach(m=> appendMessage(m.role, m.message, m.image_url));
+                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                });
+            }
+            sendBtn.addEventListener('click', function(){
+                if(busy) return;
+                const text = (input.value||'').trim();
+                if(!text) return;
+                appendMessage('user', text);
+                input.value='';
+                setStatus('Thinking...');
+                setBusy(true);
+                fetch(`/api/schedule/${scheduleId}/chat`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message:text})})
+                    .then(r=>r.json()).then(res=>{ appendMessage('assistant', res.assistant || ''); setStatus(''); })
+                    .catch(()=> setStatus('Error'))
+                    .finally(()=> setBusy(false));
+            });
+            uploadBtn.addEventListener('click', function(){
+                if(busy) return;
+                const file = uploadInput.files && uploadInput.files[0];
+                if(!file) return;
+                setStatus('Uploading image...');
+                setBusy(true);
+                const fd = new FormData(); fd.append('image', file);
+                fetch(`/api/schedule/${scheduleId}/chat/upload`, { method:'POST', body: fd })
+                    .then(r=>r.json()).then(res=>{
+                        if(res.image_url){
+                            appendMessage('user', null, res.image_url);
+                            if(res.assistant){ appendMessage('assistant', res.assistant); }
+                            setStatus('');
+                        } else setStatus(res.error || 'Upload failed');
+                    }).catch(()=> setStatus('Upload error'))
+                    .finally(()=> setBusy(false));
+            });
+            // Do not auto-load AI chat on page load; only load when user opens AI
+            // AI assistant toggle button (moves AI assistant into view and focuses input)
+            const aiToggleBtn = document.getElementById('aiScheduleToggle');
+            const aiCard = document.getElementById('aiAssistantCard');
+            if(aiToggleBtn && aiCard){
+                aiToggleBtn.addEventListener('click', function(){
+                    const isHidden = aiCard.classList.toggle('hidden');
+                    const open = !isHidden;
+                    aiToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    // if opening, load history, scroll into view and focus input
+                    if(open){
+                        // load chat history if function exists
+                        try{ if(typeof loadHistory === 'function') loadHistory(); }catch(e){}
+                        aiCard.scrollIntoView({behavior:'smooth', block:'center'});
+                        const aiInputEl = document.getElementById('aiInput');
+                        if(aiInputEl){ setTimeout(()=> aiInputEl.focus(), 300); }
+                    } else {
+                        // if closing, scroll back to top of schedule
+                        const scheduleHead = document.querySelector('.schedule-grid');
+                        if(scheduleHead) scheduleHead.scrollIntoView({behavior:'smooth', block:'start'});
+                    }
+                });
+            }
+            // loadHistory will be invoked when AI opened by the toggle above
+        })();
+    </script>
+</body>
+</html>

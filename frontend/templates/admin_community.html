@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Community</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_community.css') }}">
+</head>
+<body>
+    <div class="dashboard-container admin-container">
+        <div class="dashboard-header">
+            <h1>Community Approval</h1>
+            <div class="admin-actions">
+                <a href="{{ url_for('api.admin_dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+                <a href="{{ url_for('api.admin_dashboard') }}" class="btn btn-primary">Manage Users</a>
+                <a href="{{ url_for('api.admin_plants') }}" class="btn btn-primary">Manage Plants</a>
+                <a href="{{ url_for('api.admin_market') }}" class="btn btn-primary">Manage Market</a>
+                <a href="{{ url_for('api.logout') }}" class="btn btn-danger">Logout</a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="error info-banner">
+                    {% for msg in messages %}
+                        <div>{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section class="admin-section">
+            <div class="admin-column admin-left">
+                <div class="expert-table-section">
+                    <h3 class="expert-table-title">Pending Expert Requests</h3>
+                    <table class="users-table plants-table pending-experts-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Expertise</th>
+                                <th>Resume</th>
+                                <th>Work Samples</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pending_expert in pending %}
+                            <tr>
+                                <td>{{ pending_expert.id }}</td>
+                                <td>{{ pending_expert.name }}</td>
+                                <td>{{ pending_expert.email }}</td>
+                                <td>{{ pending_expert.expertise }}</td>
+                                <td>{% if pending_expert.resume_path %}<a href="{{ url_for('static', filename=pending_expert.resume_path) }}" target="_blank">Download</a>{% else %}-{% endif %}</td>
+                                <td>{% if pending_expert.samples_path %}<a href="{{ url_for('static', filename=pending_expert.samples_path) }}" target="_blank">Download</a>{% else %}-{% endif %}</td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('api.admin_community_approve', expert_id=pending_expert.id) }}" class="inline-form" onsubmit="return confirm('Approve {{ pending_expert.name }}?');">
+                                        <button type="submit" class="btn btn-success small">Approve</button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('api.admin_community_reject', expert_id=pending_expert.id) }}" class="inline-form" onsubmit="return confirm('Reject {{ pending_expert.name }}?');">
+                                        <button type="submit" class="btn btn-danger small">Reject</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7">No pending requests.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="expert-table-section">
+                    <h3 class="expert-table-title">Approved Experts</h3>
+                    <table class="users-table plants-table approved-experts-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Expertise</th>
+                                <th>Resume</th>
+                                <th>Work Samples</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for approved_expert in approved %}
+                            <tr>
+                                <td>{{ approved_expert.id }}</td>
+                                <td>{{ approved_expert.name }}</td>
+                                <td>{{ approved_expert.email }}</td>
+                                <td>{{ approved_expert.expertise }}</td>
+                                <td>{% if approved_expert.resume_path %}<a href="{{ url_for('static', filename=approved_expert.resume_path) }}" target="_blank">Download</a>{% else %}-{% endif %}</td>
+                                <td>{% if approved_expert.samples_path %}<a href="{{ url_for('static', filename=approved_expert.samples_path) }}" target="_blank">Download</a>{% else %}-{% endif %}</td>
+                                <td><span class="status-chip">{{ approved_expert.status }}</span></td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('api.admin_community_reject', expert_id=approved_expert.id) }}" class="inline-form" onsubmit="return confirm('Reject {{ approved_expert.name }}? This will remove their expert access.');">
+                                        <button type="submit" class="btn btn-danger small">Reject</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="8">No approved experts yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

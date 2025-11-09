@@ -1,0 +1,22 @@
+/* === embedded from style.css === */
+/* Copying the design system for consistency */
+:root{--primary-gradient:linear-gradient(135deg,#00c853 0%,#00b248 40%,#00695c 100%);--secondary-gradient:linear-gradient(135deg,#26a69a 0%,#2e7d32 100%);--danger-gradient:linear-gradient(135deg,#dc3545 0%,#c82333 100%);--shadow-medium:0 8px 25px rgba(0,0,0,.1);--radius-small:8px;--radius-medium:12px;--radius-large:20px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,#0b0f0c 0%,#0a0e0b 40%,#000 100%);min-height:100vh;display:block}
+.dashboard-container{padding:1.5rem;min-height:100vh}
+.dashboard-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;padding-bottom:1.25rem;border-bottom:1px solid rgba(255,255,255,.2)}
+.btn{position:relative;width:auto;padding:12px 20px;border:none;border-radius:var(--radius-medium);font-size:16px;font-weight:600;cursor:pointer;transition:.2s;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:var(--primary-gradient);color:#fff;box-shadow:var(--shadow-medium)}
+.btn-success{background:var(--secondary-gradient);color:#fff;box-shadow:var(--shadow-medium)}
+.btn-danger{background:var(--danger-gradient);color:#fff;box-shadow:var(--shadow-medium)}
+.btn.small{padding:8px 14px;border-radius:var(--radius-small);font-size:14px}
+.error{background:linear-gradient(135deg,rgba(248,215,218,.9) 0%,rgba(245,198,203,.9) 100%);color:#721c24;padding:16px 20px;border-radius:var(--radius-medium);margin:1rem 0;border-left:4px solid #dc3545}
+.users-table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}
+.users-table th,.users-table td{padding:12px 14px;border-bottom:1px solid #eee;color:#333;text-align:left}
+.users-table thead th{background:#f6f8f7;font-weight:700}
+.inline-form{display:inline-block}
+.info-banner{background:#e6f7ff;color:#055160;border-left:4px solid #0d6efd}
+.expert-table-section+.expert-table-section{margin-top:24px}
+.expert-table-title{margin-bottom:12px;font-size:20px;font-weight:600;color:#fff}
+.pending-experts-table,.approved-experts-table{margin-top:12px}
+.status-chip{display:inline-flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:var(--radius-small);background:rgba(38,166,154,.15);color:#2e7d32;font-weight:600;font-size:13px;text-transform:capitalize}

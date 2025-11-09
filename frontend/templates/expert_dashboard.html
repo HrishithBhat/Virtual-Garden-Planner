@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expert Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='community.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Expert Dashboard</h1>
+            <div class="header-actions">
+                <a href="{{ url_for('api.dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+                <a href="{{ url_for('api.logout') }}" class="btn btn-danger">Logout</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <p>Welcome, {{ session.get('username') }}. You are logged in as an approved expert.</p>
+            <div style="margin-top:8px; display:flex; gap:8px; flex-wrap: wrap;">
+                <a href="{{ url_for('api.chat_page') }}?only_users=1" class="btn btn-primary">Chats</a>
+                <a href="{{ url_for('api.expert_community_page') }}" class="btn btn-primary">Community</a>
+            </div>
+        </div>
+
+        <div class="card mb-1">
+            <h3 style="margin-top:0;">Open Chats</h3>
+            <div id="expertChatsList" class="recent-chats"></div>
+        </div>
+
+        <div class="card mb-1">
+            <form method="GET" action="{{ url_for('api.expert_dashboard') }}" class="controls-row">
+                <label class="search-label" for="q">Search experts</label>
+                <input class="ai-input search-input-grow" type="text" id="q" name="q" value="{{ q or '' }}" placeholder="Search by name, expertise, or bio">
+                <label class="search-label" for="expertise">Category</label>
+                <input class="ai-input" type="text" id="expertise" name="expertise" value="{{ expertise or '' }}" placeholder="e.g., Fruit Plant Expert">
+                <button class="btn btn-primary" type="submit">Filter</button>
+            </form>
+        </div>
+
+        {% if experts %}
+        <section class="experts-grid">
+            {% for e in experts %}
+            <article class="expert-card">
+                <div class="expert-header">
+                    {% if e.profile_photo_url %}
+                        <img class="expert-avatar" src="{{ e.profile_photo_url }}" alt="{{ e.name }}"/>
+                    {% else %}
+                        <div class="expert-avatar placeholder" aria-hidden="true">{{ e.name[:1] }}</div>
+                    {% endif %}
+                    <div class="expert-meta">
+                        <h3 class="expert-name">{{ e.name }}</h3>
+                        <div class="expert-role">{{ e.expertise }}</div>
+                    </div>
+                </div>
+                {% if e.bio %}
+                <p class="expert-bio">{{ e.bio }}</p>
+                {% endif %}
+                <div class="expert-actions">
+                    <button type="button" class="btn btn-primary small" onclick="startChat('{{ e.id }}')">Chat</button>
+                </div>
+            </article>
+            {% endfor %}
+        </section>
+        {% else %}
+        <div class="card">No experts found.</div>
+        {% endif %}
+    </div>
+<script>
+function startChat(expertId){
+    fetch("{{ url_for('api.chat_start') }}", { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({expert_id: expertId}) })
+        .then(r=> r.json()).then(res=>{
+            if(res && res.url){ window.location.href = res.url; }
+            else if(res && res.error){ alert(res.error); }
+        });
+}
+(function(){
+    const listEl = document.getElementById('expertChatsList');
+    const SELF = "{{ session.get('username') or '' }}";
+    function render(list){
+        listEl.innerHTML = '';
+        const items = Array.isArray(list) ? list.filter(c=> !c.is_expert_chat) : [];
+        if(!items.length){ listEl.innerHTML = '<div class="card">No chats yet. You will see users who message you here.</div>'; return; }
+        const wrap = document.createElement('div'); wrap.className = 'card';
+        const title = document.createElement('h4'); title.textContent = 'Users who messaged you'; wrap.appendChild(title);
+        items.forEach(c=>{
+            const row = document.createElement('div'); row.className = 'recent-chat-row clickable';
+            const left = document.createElement('div'); left.className = 'recent-chat-main';
+            const display = (Array.isArray(c.participants) && c.participants.length) ? (c.participants.find(n=> n!==SELF) || c.participants[0]) : (c.title || ('Chat '+c.id));
+            const initial = display && display[0] ? display[0].toUpperCase() : 'U';
+            const badge = document.createElement('span'); badge.className = 'chat-avatar'; badge.textContent = initial;
+            const nameEl = document.createElement('span'); nameEl.className = 'recent-chat-name'; nameEl.textContent = display;
+            if((c.unread||0)>0){ const u = document.createElement('span'); u.className='unread-badge'; u.textContent=String(c.unread); nameEl.appendChild(u); }
+            left.appendChild(badge); left.appendChild(nameEl);
+            const btn = document.createElement('a'); btn.className='btn btn-primary small'; btn.textContent='Open'; btn.href = "{{ url_for('api.chat_page') }}" + '?c=' + c.id;
+            const del = document.createElement('button'); del.className='btn btn-danger small'; del.textContent='Remove';
+            del.addEventListener('click', function(e){ e.stopPropagation(); if(!confirm('Remove this chat?')) return; fetch(`/api/chat/${c.id}/remove`, {method:'POST'}).then(()=> load()).catch(function(){}); });
+            row.appendChild(left); row.appendChild(btn); row.appendChild(del);
+            row.addEventListener('click', function(e){ if(e.target && e.target.tagName === 'A') return; window.location.href = btn.href; });
+            wrap.appendChild(row);
+        });
+        listEl.appendChild(wrap);
+    }
+    function load(){ fetch("{{ url_for('api.chat_conversations') }}").then(r=>r.json()).then(render).catch(function(){}); }
+    load(); setInterval(load, 1000);
+})();
+</script>
+</body>
+</html>

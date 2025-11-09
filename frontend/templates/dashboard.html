@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Essential Meta Tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Garden management dashboard with plants, marketplace, and profile features">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Page Title -->
+    <title>Dashboard - Garden Management System</title>
+    
+    <!-- External Resources -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard_theme.css') }}">
+</head>
+
+<body>
+    <!-- Main Dashboard Container -->
+<div class="dashboard-layout">
+    <aside class="user-sidebar" aria-label="User sections">
+        <div class="user-sidebar-inner">
+            <a class="user-nav-item" data-panel="plants" href="#plants" aria-label="Plants">
+                <span class="user-nav-icon">🌿</span>
+                <span class="user-nav-label">Home</span>
+            </a>
+            <a class="user-nav-item" data-panel="market" href="#market" aria-label="Market">
+                <span class="user-nav-icon">🛒</span>
+                <span class="user-nav-label">Market</span>
+            </a>
+            <button class="user-nav-item" data-panel="profile" type="button" aria-label="Profile">
+                <span class="user-nav-icon">👤</span>
+                <span class="user-nav-label">Profile</span>
+            </button>
+            <button id="aiToolsOpen" class="user-nav-item" type="button" aria-label="AI Tools" aria-controls="aiLeftPanel" aria-expanded="false">
+                <span class="user-nav-icon">🤖</span>
+                <span class="user-nav-label">AI Tools</span>
+            </button>
+            <div id="aiLeftPanel" class="ai-left-panel inline" aria-hidden="true">
+                <div class="ai-left-panel-header inline">
+                    <h2 class="ai-left-title">AI Tools</h2>
+                </div>
+                <nav class="ai-left-nav" role="navigation" aria-label="AI tools navigation">
+                    <a href="{{ url_for('api.ai_assistant_page') }}" class="ai-left-item">AI Assistance</a>
+                    <a href="{{ url_for('api.rewards_page') }}" class="ai-left-item">Rewards &amp; Progress</a>
+                    <a href="{{ url_for('api.garden_journal') }}" class="ai-left-item" data-pro="{{ '1' if session.get('is_pro') else '0' }}" data-action="journal">Garden Journal</a>
+                    <a href="{{ url_for('api.ar_planner_page') }}" class="ai-left-item" data-pro="{{ '1' if session.get('is_pro') else '0' }}" data-action="ar">AR Garden</a>
+                    <a href="{{ url_for('api.ai_disease_page') }}" class="ai-left-item">AI Disease Detection</a>
+                    <a href="{{ url_for('api.ai_weed_page') }}" class="ai-left-item">Weed Detection</a>
+                </nav>
+            </div>
+            <a class="user-nav-item" href="{{ url_for('api.my_garden') }}" aria-label="My Garden">
+                <span class="user-nav-icon">🪴</span>
+                <span class="user-nav-label">My Garden</span>
+            </a>
+            <a class="user-nav-item" href="{{ url_for('api.community_page') }}" aria-label="Community">
+                <span class="user-nav-icon">👥</span>
+                <span class="user-nav-label">Community</span>
+            </a>
+            {% if is_certified_expert %}
+            <button class="user-nav-item" data-panel="expert" type="button" aria-label="Expert">
+                <span class="user-nav-icon">⭐</span>
+                <span class="user-nav-label">Expert</span>
+            </button>
+            {% endif %}
+            <button class="user-nav-item" data-panel="filed" type="button" aria-label="Filed">
+                <span class="user-nav-icon">📁</span>
+                <span class="user-nav-label">Filed</span>
+            </button>
+            <a class="user-nav-item logout" href="{{ url_for('api.logout') }}" aria-label="Logout">
+                <span class="user-nav-icon">⎋</span>
+                <span class="user-nav-label">Logout</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="dashboard-container" role="main">
+
+        <!-- Dashboard Header -->
+        <header class="dashboard-header">
+            <h1>Available Plants</h1>
+
+            <!-- Header Actions -->
+            <div class="header-actions">
+                <!-- Main Navigation (kept for small screens) -->
+                <nav class="top-nav" role="navigation" aria-label="Main navigation">
+                    <button class="nav-btn active"
+                            data-panel="plants"
+                            aria-label="View available plants">
+                        Plants
+                    </button>
+                    <button class="nav-btn"
+                            data-panel="market"
+                            aria-label="Browse marketplace">
+                        Market
+                    </button>
+                    <button class="nav-btn"
+                            data-panel="profile"
+                            aria-label="View profile">
+                        Profile
+                    </button>
+                    <button class="nav-btn"
+                            data-panel="notifications"
+                            aria-label="View notifications">
+                        Notifications
+                    </button>
+                    <a href="{{ url_for('api.my_garden') }}"
+                       class="nav-btn"
+                       aria-label="Go to my garden page">
+                        My Garden
+                    </a>
+                    <a href="{{ url_for('api.community_page') }}"
+                       class="nav-btn"
+                       aria-label="Browse community experts">
+                        Community
+                    </a>
+                    {% if is_certified_expert %}
+                    <button class="nav-btn"
+                            id="expert-tab"
+                            data-panel="expert"
+                            aria-label="Access expert resources">
+                        Expert
+                    </button>
+                    {% endif %}
+                    <button class="nav-btn"
+                            data-panel="filed"
+                            aria-label="View filed items">
+                        Filed
+                    </button>
+                </nav>
+
+                <!-- Action Buttons -->
+                <a href="{{ url_for('api.logout') }}"
+                   class="btn btn-danger"
+                   aria-label="Logout from dashboard">
+                    Logout
+                </a>
+            </div>
+        </header>
+
+        <!-- Quick Filter Pills -->
+        <div class="filter-pills" id="typePills" aria-label="Plant categories"></div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <section class="dashboard-flash" role="alert" aria-live="assertive">
+                    <ul class="dashboard-flash-list" role="list">
+                        {% for message in messages %}
+                        <li class="dashboard-flash-item" role="listitem">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Content Panels -->
+        <div class="panels" role="tabpanel">
+            
+            <!-- Plants Panel -->
+            <section id="plants" class="panel active" role="tabpanel" aria-labelledby="plants-tab">
+                <h2 class="panel-title">Available Plants</h2>
+                <div class="card plant-controls mb-1">
+                    <form class="add-user-form" onsubmit="return false;">
+                        <div class="form-group controls-row">
+                            <label for="plantSearchInput" class="small search-label">Search</label>
+                            <input type="text" id="plantSearchInput" class="search-input-grow" placeholder="Search by name or scientific name">
+                            <button id="plantSearchBtn" class="btn btn-primary" type="button">Search</button>
+                            <button id="plantFilterToggle" class="btn" type="button">Filter</button>
+                        </div>
+                        <div id="plantFilterPanel" class="card filter-panel mt-1">
+                            <div class="form-group controls-row">
+                                <label for="sortDuration" class="small">Duration (days)</label>
+                                <select id="sortDuration" class="form-select sort-select">
+                                    <option value="">No sorting</option>
+                                    <option value="asc">Low to High</option>
+                                    <option value="desc">High to Low</option>
+                                </select>
+                                <span class="small">Type</span>
+                                <div id="filterTypesContainer" class="types-wrap"></div>
+                                <button id="plantFilterClear" class="btn" type="button">Clear</button>
+                            </div>
+                        </div>
+                        <div id="plantSearchStatus" class="small mt-1" aria-live="polite"></div>
+                    </form>
+                </div>
+                <div class="plants-grid" id="plantsGrid">
+                    {% for plant in plants %}
+                        <article class="plant-card" data-name="{{ (plant.name or '')|lower }}" data-scientific="{{ (plant.scientific_name or '')|lower }}" data-desc="{{ (plant.description or '')|lower }}" data-type="{{ (plant.type or '')|lower }}" data-duration="{{ plant.duration_days or 0 }}">
+                            <img src="{{ plant.photo_url }}" 
+                                 alt="{{ plant.name }}" 
+                                 class="plant-photo" 
+                                 loading="lazy"
+                                 onerror="this.style.display='none'" />
+                            
+                            <h4 class="plant-name">{{ plant.name }}</h4>
+                            <div class="scientific">{{ plant.scientific_name }}</div>
+                            <div class="meta">
+                                Duration: {{ plant.duration_days }} days • Type: {{ plant.type }}
+                            </div>
+                            <p class="desc">{{ plant.description }}</p>
+                            
+                            <form method="POST"
+                                  action="{{ url_for('api.garden_add', plant_id=plant.id) }}"
+                                  class="plant-form">
+                                <button type="submit"
+                                        class="btn btn-primary"
+                                        aria-label="Add {{ plant.name }} to garden">
+                                    Add to Garden
+                                </button>
+                            </form>
+
+                            {% if plant.created_by and plant.created_by == session.get('user_id') %}
+                            <form method="POST" action="{{ url_for('api.user_delete_own_plant', plant_id=plant.id) }}" class="inline-form">
+                                <button type="submit" class="btn btn-danger small" aria-label="Delete plant {{ plant.name }}" onclick="return confirm('Delete this plant? This cannot be undone.')">Delete</button>
+                            </form>
+                            {% endif %}
+                        </article>
+                    {% else %}
+                        <div class="empty-state">No plants available.</div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Profile Panel -->
+            <section id="profile" class="panel" role="tabpanel" aria-labelledby="profile-tab">
+                <h2 class="panel-title">User Profile</h2>
+                <div class="card profile-panel">
+                    <div class="profile-name">
+                        {{ profile.username if profile else username }}
+                    </div>
+                    
+                    {% if profile and profile.email %}
+                        <div class="profile-email">{{ profile.email }}</div>
+                    {% endif %}
+                    
+                    {% if profile and profile.bio %}
+                        <p class="desc">{{ profile.bio }}</p>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('api.edit_profile') }}" 
+                       class="btn btn-primary"
+                       aria-label="Edit user profile">
+                        Edit Profile
+                    </a>
+                </div>
+            </section>
+
+            <!-- Notifications Panel -->
+            <section id="notifications" class="panel" role="tabpanel" aria-labelledby="notifications-tab">
+                <h2 class="panel-title">Notifications</h2>
+                <div class="card notifications-panel">
+                    
+                    <!-- Notifications Header -->
+                    <div class="notifications-header">
+                        <div class="small">Recent</div>
+                        <button id="clearNotificationsBtn" 
+                                class="btn small"
+                                aria-label="Clear all notifications">
+                            Clear All
+                        </button>
+                    </div>
+                    
+                    <!-- Notifications Content -->
+                    <div id="notificationsContainer" role="log" aria-live="polite">
+                        {% if notifications and notifications|length > 0 %}
+                            <ul class="notifications-list" role="list">
+                                {% for n in notifications %}
+                                    <li role="listitem">
+                                        {% if n.url %}
+                                            <a href="{{ n.url }}" 
+                                               aria-label="Notification: {{ n.message }}">
+                                                {{ n.message }}
+                                            </a>
+                                        {% else %}
+                                            {{ n.message }}
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <div class="empty">No notifications</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- My Garden Panel -->
+            <section id="mygarden" class="panel" role="tabpanel" aria-labelledby="mygarden-tab">
+                <h2 class="panel-title">My Garden</h2>
+                <div class="card garden-panel">
+                    {% if garden and garden|length > 0 %}
+                        <div class="garden-list">
+                            {% for item in garden %}
+                                <article class="garden-item">
+                                    <div class="garden-info">
+                                        <strong>{{ item.plant.name }}</strong>
+                                        <div class="scientific small">{{ item.plant.scientific_name }}</div>
+                                        
+                                        {% if item.nickname %}
+                                            <div class="small">Nickname: {{ item.nickname }}</div>
+                                        {% endif %}
+                                        
+                                        <div class="small">Quantity: {{ item.quantity or 1 }}</div>
+                                    </div>
+                                    
+                                    <div class="garden-actions">
+                                        {% if item.schedule_id %}
+                                            <a href="{{ url_for('api.garden_schedule_view', schedule_id=item.schedule_id) }}"
+                                               class="btn btn-success small"
+                                               aria-label="View schedule for {{ item.plant.name }}">
+                                                View Schedule
+                                            </a>
+                                        {% else %}
+                                            <a href="{{ url_for('api.garden_schedule_generate', garden_id=item.garden_id) }}"
+                                               class="btn btn-primary small"
+                                               aria-label="Create schedule for {{ item.plant.name }}">
+                                                Do Schedule
+                                            </a>
+                                        {% endif %}
+
+                                        {% if item.is_creator %}
+                                        <a href="{{ url_for('api.garden_edit', garden_id=item.garden_id) }}"
+                                           class="btn btn-primary small"
+                                           aria-label="Edit details for {{ item.plant.name }}">
+                                            Edit
+                                        </a>
+                                        <form method="POST"
+                                              action="{{ url_for('api.garden_remove', plant_id=item.plant_id) }}"
+                                              class="inline-form">
+                                            <button type="submit"
+                                                    class="btn btn-danger small"
+                                                    aria-label="Delete {{ item.plant.name }} from garden"
+                                                    onclick="return confirm('Delete {{ item.plant.name }} from garden?')">
+                                                Delete
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <form method="POST"
+                                              action="{{ url_for('api.garden_remove', plant_id=item.plant_id) }}"
+                                              class="inline-form">
+                                            <button type="submit"
+                                                    class="btn btn-danger small"
+                                                    aria-label="Remove {{ item.plant.name }} from garden"
+                                                    onclick="return confirm('Remove {{ item.plant.name }} from garden?')">
+                                                Remove
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="empty-state">Your garden is empty. Add plants from the list.</p>
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- Market Panel -->
+            <section id="market" class="panel" role="tabpanel" aria-labelledby="market-tab">
+                <h2 class="panel-title">Marketplace</h2>
+                <div class="card plant-controls mb-1">
+                    <form class="add-user-form" onsubmit="return false;">
+                        <div class="form-group controls-row">
+                            <label for="marketSearchInput" class="small search-label">Search</label>
+                            <input type="text" id="marketSearchInput" class="search-input-grow" placeholder="Search by name, brand or category">
+                            <button id="marketSearchBtn" class="btn btn-primary" type="button">Search</button>
+                            <button id="marketFilterToggle" class="btn" type="button">Filter</button>
+                        </div>
+                        <div id="marketFilterPanel" class="card filter-panel mt-1">
+                            <div class="form-group controls-row">
+                                <span class="small">Category</span>
+                                <div id="marketTypesContainer" class="types-wrap"></div>
+                                <button id="marketFilterClear" class="btn" type="button">Clear</button>
+                            </div>
+                        </div>
+                        <div id="marketSearchStatus" class="small mt-1" aria-live="polite"></div>
+                    </form>
+                </div>
+                <div class="plants-grid" id="marketGrid">
+                    {% for product in products %}
+                        <article class="plant-card" data-name="{{ (product.name or '')|lower }}" data-type="{{ (product.type or '')|lower }}" data-brand="{{ (product.brand or '')|lower }}" data-desc="{{ (product.description or '')|lower }}">
+                            <img src="{{ product.image_url }}"
+                                 alt="{{ product.name }}"
+                                 class="plant-photo"
+                                 loading="lazy"
+                                 onerror="this.style.display='none'" />
+
+                            <h4 class="plant-name">{{ product.name }}</h4>
+                            <div class="meta">
+                                Type: {{ product.type }}
+                                {% if product.brand %} • Brand: {{ product.brand }}{% endif %}
+                            </div>
+                            <div class="meta">Price: {{ product.price }} / {{ product.unit }}</div>
+                            <div class="small">In stock: {{ product.quantity }}</div>
+
+                            {% if product.description %}
+                                <p class="desc">{{ product.description }}</p>
+                            {% endif %}
+
+                            <a href="{{ product.buy_url }}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="btn btn-success"
+                               aria-label="Buy {{ product.name }} (opens in new tab)">
+                                Buy
+                            </a>
+                        </article>
+                    {% else %}
+                        <div class="empty-state">No products available.</div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Filed Panel -->
+            <section id="filed" class="panel" role="tabpanel" aria-labelledby="filed-tab">
+                <h2 class="panel-title">Filed Items</h2>
+                <div class="card filed-panel">
+                    <p class="desc">
+                        This panel holds extra fields and details related to the selected plant or garden item.
+                        Click a plant or garden entry to view or edit filed details.
+                    </p>
+
+                    <div class="filed-list">
+                        {% for plant in plants %}
+                            <article class="filed-row">
+                                <strong>{{ plant.name }}</strong>
+                                <div class="small">
+                                    Type: {{ plant.type }} • Duration: {{ plant.duration_days }}d
+                                </div>
+                                <form method="POST"
+                                      action="{{ url_for('api.garden_add', plant_id=plant.id) }}"
+                                      class="filed-action-form">
+                                    <button type="submit"
+                                            class="btn btn-primary small"
+                                            aria-label="Add {{ plant.name }} to garden from filed items">
+                                        Add to Garden
+                                    </button>
+                                </form>
+                            </article>
+                        {% else %}
+                            <div class="empty-state">No entries</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+            {% if is_certified_expert %}
+            <!-- Expert Panel -->
+            <section id="expert" class="panel" role="tabpanel" aria-labelledby="expert-tab">
+                <h2 class="panel-title">Expert Access</h2>
+                <div class="card expert-access-card">
+                    <p class="expert-intro">
+                        Welcome to the expert workspace. Use the tools below to manage expert consultations, review community requests, and keep your profile up to date.
+                    </p>
+                    <div class="expert-actions">
+                        <a href="{{ url_for('api.expert_dashboard') }}"
+                           class="btn btn-primary expert-dashboard-button"
+                           aria-label="Open the dedicated expert dashboard">
+                            Open Expert Dashboard
+                        </a>
+                        <a href="{{ url_for('api.expert_login') }}"
+                           class="btn btn-success expert-login-button"
+                           aria-label="Switch to expert login">
+                            Expert Login
+                        </a>
+                    </div>
+                    <div class="expert-support">
+                        <h3 class="expert-support-title">Stay Connected</h3>
+                        <p class="expert-support-text">
+                            Visit the <a href="{{ url_for('api.community_page') }}" class="expert-support-link" aria-label="Go to expert community page">Community Hub</a> to engage with gardeners, answer questions, and showcase your expertise.
+                        </p>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dashboardSurface = document.querySelector('.dashboard-layout');
+            if (dashboardSurface) {
+                const suppressClipboard = (evt) => {
+                    if (!dashboardSurface.contains(evt.target)) {
+                        return;
+                    }
+                    evt.preventDefault();
+                    if (evt.clipboardData) {
+                        evt.clipboardData.setData('text/plain', '');
+                    }
+                };
+                const suppressShortcuts = (evt) => {
+                    if (!dashboardSurface.contains(evt.target)) {
+                        return;
+                    }
+                    const key = evt.key ? evt.key.toLowerCase() : '';
+                    if ((evt.ctrlKey || evt.metaKey) && (key === 'c' || key === 'x' || key === 'a')) {
+                        evt.preventDefault();
+                    }
+                };
+                const blockSelectionStart = (evt) => {
+                    if (!dashboardSurface.contains(evt.target)) {
+                        return;
+                    }
+                    if (evt.target.closest('input, textarea, select')) {
+                        return;
+                    }
+                    evt.preventDefault();
+                };
+                document.addEventListener('copy', suppressClipboard);
+                document.addEventListener('cut', suppressClipboard);
+                document.addEventListener('keydown', suppressShortcuts, true);
+                dashboardSurface.addEventListener('selectstart', blockSelectionStart);
+            }
+            // Navigation functionality
+            const buttons = document.querySelectorAll('.nav-btn');
+            const panels = document.querySelectorAll('.panel');
+            
+            function showPanel(name) {
+                panels.forEach(p => { 
+                    p.classList.toggle('active', p.id === name); 
+                });
+                buttons.forEach(b => { 
+                    b.classList.toggle('active', b.dataset.panel === name); 
+                });
+            }
+            
+            const sideItems = document.querySelectorAll('.user-nav-item[data-panel]');
+            function setSidebarActive(name){ sideItems.forEach(i=> i.classList.toggle('active', i.dataset.panel === name)); }
+            sideItems.forEach(i=> i.addEventListener('click', (e)=>{ e.preventDefault(); const n=i.dataset.panel; if(n){ showPanel(n); setSidebarActive(n); } }));
+
+            function ensureDashboardFlashRegion() {
+                let container = document.querySelector('.dashboard-flash');
+                let list = container ? container.querySelector('.dashboard-flash-list') : null;
+                if (!container) {
+                    container = document.createElement('section');
+                    container.className = 'dashboard-flash';
+                    container.setAttribute('role', 'alert');
+                    container.setAttribute('aria-live', 'assertive');
+                    list = document.createElement('ul');
+                    list.className = 'dashboard-flash-list';
+                    container.appendChild(list);
+                    const header = document.querySelector('.dashboard-header');
+                    if (header) {
+                        header.insertAdjacentElement('afterend', container);
+                    } else {
+                        const main = document.querySelector('.dashboard-container');
+                        if (main) {
+                            main.insertBefore(container, main.firstChild || null);
+                        } else {
+                            document.body.insertBefore(container, document.body.firstChild || null);
+                        }
+                    }
+                }
+                if (!list) {
+                    list = document.createElement('ul');
+                    list.className = 'dashboard-flash-list';
+                    container.innerHTML = '';
+                    container.appendChild(list);
+                }
+                return { container, list };
+            }
+
+            function showDashboardMessage(message, type = 'success') {
+                if (!message) return;
+                const { container, list } = ensureDashboardFlashRegion();
+                container.classList.toggle('error-state', type === 'error');
+                container.classList.toggle('success-state', type !== 'error');
+                list.innerHTML = '';
+                const item = document.createElement('li');
+                item.className = 'dashboard-flash-item';
+                item.textContent = message;
+                list.appendChild(item);
+            }
+
+            buttons.forEach(btn => {
+                if (btn.dataset.panel) {
+                    btn.addEventListener('click', () => { showPanel(btn.dataset.panel); setSidebarActive(btn.dataset.panel); });
+                }
+            });
+
+            // Default panel
+            showPanel('plants');
+            setSidebarActive('plants');
+
+            // Plants search and filters
+            const grid = document.getElementById('plantsGrid');
+            if (grid) {
+                const cards = Array.from(grid.querySelectorAll('.plant-card'));
+                const qInput = document.getElementById('plantSearchInput');
+                const qBtn = document.getElementById('plantSearchBtn');
+                const toggleBtn = document.getElementById('plantFilterToggle');
+                const panel = document.getElementById('plantFilterPanel');
+                const sortSel = document.getElementById('sortDuration');
+                const typesWrap = document.getElementById('filterTypesContainer');
+                const clearBtn = document.getElementById('plantFilterClear');
+
+                const typeSet = new Set(cards.map(c => (c.dataset.type || '').trim()).filter(Boolean));
+                const types = Array.from(typeSet).sort();
+                types.forEach(t => {
+                    const id = 'type-' + t.replace(/[^a-z0-9]+/g, '-');
+                    const label = document.createElement('label');
+                    label.className = 'small';
+                    label.setAttribute('for', id);
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox'; cb.id = id; cb.value = t;
+                    label.appendChild(cb);
+                    label.appendChild(document.createTextNode(' ' + t));
+                    typesWrap.appendChild(label);
+                });
+                const pillWrap = document.getElementById('typePills');
+                if (pillWrap){
+                    pillWrap.innerHTML = '';
+                    const mk = (txt,val)=>{ const b=document.createElement('button'); b.type='button'; b.className='pill'+(val?'':' active'); b.textContent=txt; b.addEventListener('click', ()=>{
+                        Array.from(typesWrap.querySelectorAll('input[type="checkbox"]')).forEach(i=> i.checked = !!val && i.value===val);
+                        applyFilters();
+                        Array.from(pillWrap.querySelectorAll('.pill')).forEach(p=> p.classList.remove('active'));
+                        b.classList.add('active');
+                    }); return b; };
+                    pillWrap.appendChild(mk('All',''));
+                    types.forEach(t=> pillWrap.appendChild(mk(t.charAt(0).toUpperCase()+t.slice(1), t)));
+                }
+
+                function selectedTypes(){
+                    const arr = Array.from(typesWrap.querySelectorAll('input[type="checkbox"]:checked')).map(i => i.value);
+                    return new Set(arr);
+                }
+
+                function editDistance(a,b){
+                    a = a || ''; b = b || '';
+                    const m = a.length, n = b.length;
+                    if (!m) return n; if (!n) return m;
+                    const dp = Array.from({length:m+1},()=>Array(n+1).fill(0));
+                    for(let i=0;i<=m;i++) dp[i][0]=i;
+                    for(let j=0;j<=n;j++) dp[0][j]=j;
+                    for(let i=1;i<=m;i++){
+                        for(let j=1;j<=n;j++){
+                            const cost = a[i-1]===b[j-1]?0:1;
+                            dp[i][j] = Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost);
+                        }
+                    }
+                    return dp[m][n];
+                }
+                function fuzzyMatch(text, q){
+                    if (!q) return true;
+                    text = (text||'').toLowerCase();
+                    if (text.includes(q)) return true;
+                    const d = editDistance(text.slice(0, Math.min(text.length, q.length+2)), q);
+                    const threshold = Math.max(1, Math.floor(q.length*0.3));
+                    return d <= threshold;
+                }
+                async function aiCorrect(q){
+                    try{
+                        const res = await fetch(`/api/ai/spellcheck?q=${encodeURIComponent(q)}`);
+                        const data = await res.json();
+                        return (data && data.corrected) ? String(data.corrected).trim() : q;
+                    }catch(_e){ return q; }
+                }
+                async function applyFilters(triggerSort=true){
+                    const status = document.getElementById('plantSearchStatus');
+                    const qRaw = (qInput?.value || '').trim();
+                    const q = qRaw.toLowerCase();
+                    const selTypes = selectedTypes();
+
+                    let visibleCount = 0;
+                    cards.forEach(card => {
+                        const name = card.dataset.name || '';
+                        const sci = card.dataset.scientific || '';
+                        const desc = card.dataset.desc || '';
+                        const type = card.dataset.type || '';
+                        const matchesQuery = !q || fuzzyMatch(name, q) || fuzzyMatch(sci, q) || fuzzyMatch(desc, q);
+                        const matchesType = selTypes.size === 0 || selTypes.has(type);
+                        const show = (matchesQuery && matchesType);
+                        card.style.display = show ? '' : 'none';
+                        if (show) visibleCount++;
+                    });
+
+                    if (triggerSort){ doSort(); }
+
+                    if (status){
+                        if (!q){ status.textContent=''; }
+                        else if (visibleCount===0){ status.textContent='No results. Checking spelling...';
+                            const corrected = await aiCorrect(qRaw);
+                            if (corrected && corrected.toLowerCase() !== q){
+                                qInput.value = corrected;
+                                status.textContent = `Showing results for: ${corrected}`;
+                                // re-run filter with corrected
+                                await applyFilters(false);
+                            } else {
+                                status.textContent = 'No matching plants found';
+                            }
+                        } else {
+                            status.textContent = visibleCount + ' result' + (visibleCount>1?'s':'');
+                        }
+                    }
+                }
+
+                function doSort(){
+                    const mode = sortSel?.value || '';
+                    if (!mode) return;
+                    // Recompute from current DOM so we always sort latest visible set
+                    const all = Array.from(grid.querySelectorAll('.plant-card'));
+                    const visible = all.filter(c => c.style.display !== 'none');
+                    const hidden = all.filter(c => c.style.display === 'none');
+                    visible.sort((a,b)=>{
+                        const da = Number(a.dataset.duration || 0) || 0;
+                        const db = Number(b.dataset.duration || 0) || 0;
+                        if (da === db) return 0;
+                        return mode === 'asc' ? (da - db) : (db - da);
+                    });
+                    [...visible, ...hidden].forEach(el => grid.appendChild(el));
+                }
+
+                if (qBtn) qBtn.addEventListener('click', ()=> applyFilters());
+                if (qInput){
+                    let t=null;
+                    qInput.addEventListener('input', ()=>{ clearTimeout(t); t = setTimeout(()=> applyFilters(), 250); });
+                    qInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); applyFilters(); }});
+                }
+                if (toggleBtn) toggleBtn.addEventListener('click', ()=>{ panel.classList.toggle('open'); });
+                if (sortSel) sortSel.addEventListener('change', ()=> applyFilters(true));
+                if (typesWrap) typesWrap.addEventListener('change', ()=> applyFilters());
+                if (clearBtn) clearBtn.addEventListener('click', ()=>{
+                    if (qInput) qInput.value = '';
+                    if (sortSel) sortSel.value = '';
+                    Array.from(typesWrap.querySelectorAll('input[type="checkbox"]')).forEach(i=> i.checked = false);
+                    applyFilters();
+                });
+            }
+
+            // Marketplace search and filters
+            const mGrid = document.getElementById('marketGrid');
+            if (mGrid){
+                const mCards = Array.from(mGrid.querySelectorAll('.plant-card'));
+                const mInput = document.getElementById('marketSearchInput');
+                const mBtn = document.getElementById('marketSearchBtn');
+                const mToggle = document.getElementById('marketFilterToggle');
+                const mPanel = document.getElementById('marketFilterPanel');
+                const mTypesWrap = document.getElementById('marketTypesContainer');
+                const mClear = document.getElementById('marketFilterClear');
+
+                const mTypeSet = new Set(mCards.map(c => (c.dataset.type || '').trim()).filter(Boolean));
+                const mTypes = Array.from(mTypeSet).sort();
+                mTypes.forEach(t => {
+                    const id = 'mtype-' + t.replace(/[^a-z0-9]+/g, '-');
+                    const label = document.createElement('label');
+                    label.className = 'small';
+                    label.setAttribute('for', id);
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox'; cb.id = id; cb.value = t;
+                    label.appendChild(cb);
+                    label.appendChild(document.createTextNode(' ' + t));
+                    mTypesWrap.appendChild(label);
+                });
+                function mSelectedTypes(){
+                    const arr = Array.from(mTypesWrap.querySelectorAll('input[type="checkbox"]:checked')).map(i=> i.value);
+                    return new Set(arr);
+                }
+                function mEditDistance(a,b){
+                    a = a || ''; b = b || '';
+                    const m = a.length, n = b.length;
+                    if (!m) return n; if (!n) return m;
+                    const dp = Array.from({length:m+1},()=>Array(n+1).fill(0));
+                    for(let i=0;i<=m;i++) dp[i][0]=i;
+                    for(let j=0;j<=n;j++) dp[0][j]=j;
+                    for(let i=1;i<=m;i++){
+                        for(let j=1;j<=n;j++){
+                            const cost = a[i-1]===b[j-1]?0:1;
+                            dp[i][j] = Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost);
+                        }
+                    }
+                    return dp[m][n];
+                }
+                function mFuzzy(text, q){
+                    if (!q) return true;
+                    text = (text||'').toLowerCase();
+                    if (text.includes(q)) return true;
+                    const d = mEditDistance(text.slice(0, Math.min(text.length, q.length+2)), q);
+                    const threshold = Math.max(1, Math.floor(q.length*0.3));
+                    return d <= threshold;
+                }
+                async function mAiCorrect(q){
+                    try{
+                        const res = await fetch(`/api/ai/spellcheck?q=${encodeURIComponent(q)}`);
+                        const data = await res.json();
+                        return (data && data.corrected) ? String(data.corrected).trim() : q;
+                    }catch(_e){ return q; }
+                }
+                function mTopSuggestions(q, limit=3){
+                    const scores = [];
+                    const lowerQ = (q||'').toLowerCase();
+                    mCards.forEach(card=>{
+                        const name = card.dataset.name||'';
+                        const brand = card.dataset.brand||'';
+                        const type = card.dataset.type||'';
+                        const desc = card.dataset.desc||'';
+                        const base = [name, brand, type].filter(Boolean).join(' ');
+                        const d = mEditDistance(base.slice(0, Math.min(base.length, lowerQ.length+4)), lowerQ);
+                        scores.push({el:card, d, suggestion: name || brand || type || ''});
+                    });
+                    scores.sort((a,b)=>a.d-b.d);
+                    const uniq = [];
+                    const seen = new Set();
+                    for (const s of scores){
+                        const txt = (s.suggestion||'').trim();
+                        if (txt && !seen.has(txt)){
+                            uniq.push(txt); seen.add(txt);
+                        }
+                        if (uniq.length>=limit) break;
+                    }
+                    return uniq;
+                }
+                async function mApply(){
+                    const status = document.getElementById('marketSearchStatus');
+                    const raw = (mInput?.value || '').trim();
+                    const q = raw.toLowerCase();
+                    const sel = mSelectedTypes();
+                    let visible=0;
+                    mCards.forEach(card=>{
+                        const name = card.dataset.name||'';
+                        const brand = card.dataset.brand||'';
+                        const type = card.dataset.type||'';
+                        const desc = card.dataset.desc||'';
+                        const mq = !q || mFuzzy(name,q) || mFuzzy(brand,q) || mFuzzy(type,q) || mFuzzy(desc,q);
+                        const mt = sel.size===0 || sel.has(type);
+                        const show = mq && mt;
+                        card.style.display = show? '': 'none';
+                        if (show) visible++;
+                    });
+                    if (status){
+                        if (!q){ status.textContent = visible + ' item' + (visible===1?'':'s'); return; }
+                        if (visible===0){
+                            status.textContent = 'No results. Checking spelling...';
+                            const corr = await mAiCorrect(raw);
+                            if (corr && corr.toLowerCase() !== q){
+                                mInput.value = corr;
+                                status.textContent = `Showing results for: ${corr}`;
+                                await mApply();
+                                return;
+                            }
+                            const sugg = mTopSuggestions(q, 3);
+                            if (sugg.length){
+                                status.innerHTML = 'No exact matches. Try: ' + sugg.map(s=>`<button type="button" class="btn small" data-value="${s}">${s}</button>`).join(' ');
+                                Array.from(status.querySelectorAll('button[data-value]')).forEach(btn=>{
+                                    btn.addEventListener('click', ()=>{ mInput.value = btn.dataset.value||''; mApply(); });
+                                });
+                            } else {
+                                status.textContent = 'No products found';
+                            }
+                        } else {
+                            status.textContent = visible + ' result' + (visible>1?'s':'');
+                        }
+                    }
+                }
+                if (mBtn) mBtn.addEventListener('click', ()=> mApply());
+                if (mInput){
+                    let t=null;
+                    mInput.addEventListener('input', ()=>{ clearTimeout(t); t=setTimeout(()=> mApply(), 250); });
+                    mInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); mApply(); }});
+                }
+                if (mToggle) mToggle.addEventListener('click', ()=>{ mPanel.classList.toggle('open'); });
+                if (mTypesWrap) mTypesWrap.addEventListener('change', ()=> mApply());
+                if (mClear) mClear.addEventListener('click', ()=>{
+                    if (mInput) mInput.value='';
+                    Array.from(mTypesWrap.querySelectorAll('input[type="checkbox"]')).forEach(i=> i.checked=false);
+                    mApply();
+                });
+                mApply();
+            }
+
+            // AI tools dropdown
+            const toolsGroup = document.querySelector('.ai-tools-group');
+            const toolsToggle = document.getElementById('aiToolsToggle');
+            const toolsMenu = document.getElementById('aiToolsMenu');
+            function closeTools(){ if(toolsGroup){ toolsGroup.classList.remove('open'); } if(toolsToggle){ toolsToggle.setAttribute('aria-expanded','false'); } if(toolsMenu){ toolsMenu.setAttribute('aria-hidden','true'); } }
+            if (toolsToggle && toolsGroup && toolsMenu) {
+                toolsToggle.addEventListener('click', (e)=>{
+                    e.preventDefault();
+                    const open = toolsGroup.classList.toggle('open');
+                    toolsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    toolsMenu.setAttribute('aria-hidden', open ? 'false' : 'true');
+                });
+                document.addEventListener('click', (e)=>{ if(!toolsGroup.contains(e.target)){ closeTools(); } });
+                document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ closeTools(); } });
+                toolsMenu.querySelectorAll('a').forEach(a=> a.addEventListener('click', ()=> closeTools()));
+            }
+
+            // Pro gating inside dropdown
+            document.querySelectorAll('.ai-tools-menu [data-action="ar"]').forEach(link=>{
+                link.addEventListener('click', (e)=>{
+                    const isPro = link.getAttribute('data-pro') === '1';
+                    if(!isPro){ e.preventDefault(); alert('AR Garden Planning is a Pro feature for ₹3. Please upgrade to access it.'); }
+                });
+            });
+            document.querySelectorAll('.ai-tools-menu [data-action="journal"]').forEach(link=>{
+                link.addEventListener('click', (e)=>{
+                    const isPro = link.getAttribute('data-pro') === '1';
+                    if(!isPro){ e.preventDefault(); alert('🚫 This feature is for Pro users only. Upgrade for ₹3 to access the Garden Journal & Progress Tracker.'); }
+                });
+            });
+
+            // Inline AI tools panel toggle
+            const aiLeftPanel = document.getElementById('aiLeftPanel');
+            const aiToolsOpen = document.getElementById('aiToolsOpen');
+
+            function collapseInlineAiTools(){
+                if(aiLeftPanel){
+                    aiLeftPanel.classList.remove('open');
+                    aiLeftPanel.setAttribute('aria-hidden','true');
+                }
+                if(aiToolsOpen){
+                    aiToolsOpen.setAttribute('aria-expanded','false');
+                }
+            }
+
+            if (aiToolsOpen && aiLeftPanel) {
+                aiToolsOpen.addEventListener('click', (e)=>{
+                    e.preventDefault();
+                    const shouldOpen = !aiLeftPanel.classList.contains('open');
+                    aiLeftPanel.classList.toggle('open', shouldOpen);
+                    aiLeftPanel.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+                    aiToolsOpen.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+                });
+
+                aiLeftPanel.querySelectorAll('a').forEach(link=>{
+                    link.addEventListener('click', ()=> collapseInlineAiTools());
+                });
+
+                document.addEventListener('click', (event)=>{
+                    if(aiLeftPanel.classList.contains('open') && !aiLeftPanel.contains(event.target) && !aiToolsOpen.contains(event.target)){
+                        collapseInlineAiTools();
+                    }
+                });
+
+                document.addEventListener('keydown', (event)=>{
+                    if(event.key === 'Escape'){
+                        collapseInlineAiTools();
+                    }
+                });
+            }
+
+            // Pro gating inside inline panel
+            document.querySelectorAll('.ai-left-item[data-action="ar"]').forEach(link=>{
+                link.addEventListener('click', (e)=>{
+                    const isPro = link.getAttribute('data-pro') === '1';
+                    if(!isPro){ e.preventDefault(); collapseInlineAiTools(); alert('AR Garden Planning is a Pro feature for \u20B93. Please upgrade to access it.'); }
+                });
+            });
+            document.querySelectorAll('.ai-left-item[data-action="journal"]').forEach(link=>{
+                link.addEventListener('click', (e)=>{
+                    const isPro = link.getAttribute('data-pro') === '1';
+                    if(!isPro){ e.preventDefault(); collapseInlineAiTools(); alert('🚫 This feature is for Pro users only. Upgrade for \u20B93 to access the Garden Journal & Progress Tracker.'); }
+                });
+            });
+
+            // Clear notifications functionality
+            const clearBtn = document.getElementById('clearNotificationsBtn');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function() {
+                    if (!confirm('Clear all notifications?')) return;
+                    
+                    fetch("{{ url_for('api.clear_notifications') }}", {
+                        method: 'POST', 
+                        credentials: 'same-origin'
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        const container = document.getElementById('notificationsContainer');
+                        if (data && data.message) {
+                            container.innerHTML = '<div class="empty">No notifications</div>';
+                        } else {
+                            alert('Failed to clear notifications');
+                        }
+                    })
+                    .catch(err => { 
+                        alert('Error clearing notifications'); 
+                    });
+                });
+            }
+
+            // Intercept garden add to keep interactions smooth and avoid visible reloads
+            document.addEventListener('submit', function(event) {
+                const form = event.target;
+                if (!(form instanceof HTMLFormElement)) return;
+                if (!form.matches('form[action*="/garden/add/"]')) return;
+
+                event.preventDefault();
+                if (form.dataset.requestPending === 'true') return;
+
+                form.dataset.requestPending = 'true';
+                const submitButton = form.querySelector('button[type="submit"]');
+                const originalLabel = submitButton ? submitButton.textContent.trim() : '';
+                if (submitButton) {
+                    submitButton.classList.add('loading');
+                    submitButton.setAttribute('aria-busy', 'true');
+                    submitButton.disabled = true;
+                }
+
+                const payload = new FormData(form);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: payload,
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'fetch'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json().catch(() => ({})).then(data => ({ data, ok: response.ok })))
+                .then(({ data, ok }) => {
+                    const resolvedSuccess = Boolean((data && data.success) || (!data && ok));
+                    const messageText = (data && data.message) ? String(data.message) : (resolvedSuccess ? 'Plant added to your garden' : 'Plant could not be added to your garden');
+
+                    if (submitButton) {
+                        submitButton.classList.remove('loading');
+                        submitButton.setAttribute('aria-busy', 'false');
+                    }
+
+                    if (resolvedSuccess) {
+                        if (submitButton) {
+                            submitButton.classList.remove('btn-primary');
+                            submitButton.classList.add('btn-success');
+                            submitButton.textContent = 'Added';
+                            submitButton.disabled = true;
+                        }
+                        const card = form.closest('.plant-card');
+                        if (card) {
+                            card.classList.add('plant-card-added');
+                            setTimeout(() => card.classList.remove('plant-card-added'), 2200);
+                        }
+                        document.querySelectorAll('form[action*="/garden/add/"]').forEach(otherForm => {
+                            if (otherForm === form) return;
+                            if (otherForm.action !== form.action) return;
+                            const otherButton = otherForm.querySelector('button[type="submit"]');
+                            if (otherButton) {
+                                otherButton.classList.remove('btn-primary');
+                                otherButton.classList.add('btn-success');
+                                otherButton.textContent = 'Added';
+                                otherButton.disabled = true;
+                            }
+                            const otherCard = otherForm.closest('.plant-card');
+                            if (otherCard) {
+                                otherCard.classList.add('plant-card-added');
+                                setTimeout(() => otherCard.classList.remove('plant-card-added'), 2200);
+                            }
+                        });
+                        showDashboardMessage(messageText, 'success');
+                        delete form.dataset.requestPending;
+                        return;
+                    }
+
+                    if (submitButton) {
+                        submitButton.textContent = originalLabel || 'Add to Garden';
+                        submitButton.disabled = false;
+                    }
+                    showDashboardMessage(messageText, 'error');
+                    delete form.dataset.requestPending;
+                })
+                .catch(() => {
+                    if (submitButton) {
+                        submitButton.classList.remove('loading');
+                        submitButton.setAttribute('aria-busy', 'false');
+                        submitButton.textContent = originalLabel || 'Add to Garden';
+                        submitButton.disabled = false;
+                    }
+                    showDashboardMessage('Failed to add the plant. Please try again.', 'error');
+                    delete form.dataset.requestPending;
+                });
+            });
+
+            // Intercept garden remove to avoid page refresh and dashboard redirect
+            document.addEventListener('submit', function(e){
+                const form = e.target;
+                if (!(form instanceof HTMLFormElement)) return;
+                if (!form.matches('form[action*="/garden/remove/"]')) return;
+                e.preventDefault();
+                const itemEl = form.closest('.garden-item');
+                const parent = itemEl ? itemEl.parentNode : null;
+                const next = itemEl ? itemEl.nextSibling : null;
+                if (itemEl) itemEl.remove();
+                fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'fetch' },
+                    credentials: 'same-origin'
+                })
+                .then(res => res.json().then(d => ({ ok: res.ok, data: d })).catch(()=> ({ ok: res.ok, data: {} })))
+                .then(({ok, data}) => {
+                    const failed = !ok || (data && (data.error || data.ok === false));
+                    if (failed && parent){ parent.insertBefore(itemEl, next); alert((data && (data.message||data.error)) || 'Failed to remove'); }
+                })
+                .catch(()=>{ if (parent){ parent.insertBefore(itemEl, next); alert('Failed to remove'); } });
+            });
+        });
+    </script>
+</body>
+
+</html>

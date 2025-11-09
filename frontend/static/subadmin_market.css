@@ -1,0 +1,279 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --primary-color: #4caf50;
+    --secondary-color: #2e7d32;
+    --accent-color: #00c853;
+    --danger-color: #ff5252;
+    --card-accent: rgba(255, 255, 255, 0.08);
+    --surface-overlay: rgba(10, 14, 22, 0.74);
+    --surface-card: rgba(16, 21, 32, 0.8);
+    --border-soft: rgba(255, 255, 255, 0.08);
+    --text-primary: #f4f6fb;
+    --text-muted: rgba(244, 246, 251, 0.7);
+    --radius-large: 20px;
+    --radius-medium: 12px;
+    --radius-small: 6px;
+    --shadow-soft: 0 20px 46px rgba(0, 0, 0, 0.35);
+    --shadow-card: 0 16px 32px rgba(0, 0, 0, 0.32);
+    --transition-base: all 0.3s ease;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: radial-gradient(circle at top, rgba(76, 175, 80, 0.25), rgba(9, 12, 20, 0.92) 45%), linear-gradient(165deg, #0a0f1a, #131c2a 60%, #0d151f);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 0 0 48px;
+}
+
+.dashboard-container.admin-container {
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: 50px 32px 44px;
+    background: var(--surface-overlay);
+    border-radius: var(--radius-large);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 38px;
+}
+
+.dashboard-header h1 {
+    margin: 0;
+    font-size: 2.15rem;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px;
+    border-radius: var(--radius-medium);
+    border: none;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.4px;
+    color: #fff;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.08);
+    transition: var(--transition-base);
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
+}
+
+.btn.small {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+}
+
+.btn-primary {
+    background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
+}
+
+.btn-danger {
+    background: linear-gradient(120deg, #ff6b6b, var(--danger-color));
+}
+
+.btn-success {
+    background: linear-gradient(120deg, var(--primary-color), #43a047);
+}
+
+.inline-form {
+    display: inline-block;
+}
+
+.info-banner {
+    background: rgba(129, 212, 250, 0.14);
+    color: #90caf9;
+    border-left: 4px solid #29b6f6;
+    padding: 16px 24px;
+    border-radius: var(--radius-medium);
+    margin-bottom: 28px;
+    box-shadow: 0 12px 28px rgba(41, 182, 246, 0.25);
+}
+
+.admin-section {
+    display: flex;
+    align-items: flex-start;
+    gap: 34px;
+}
+
+.admin-column {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-column h3 {
+    margin: 0 0 18px;
+    font-size: 1.45rem;
+    font-weight: 600;
+}
+
+.admin-column.admin-left {
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+}
+
+.admin-column.admin-right {
+    max-width: 380px;
+    width: 100%;
+}
+
+.plants-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--surface-card);
+    border-radius: var(--radius-medium);
+    overflow: hidden;
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-card);
+}
+
+.plants-table thead {
+    background: linear-gradient(120deg, rgba(76, 175, 80, 0.48), rgba(0, 0, 0, 0.35));
+}
+
+.plants-table th,
+.plants-table td {
+    padding: 16px 18px;
+    text-align: left;
+    font-size: 0.95rem;
+}
+
+.plants-table th {
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-size: 0.82rem;
+    color: #ffffff;
+}
+
+.plants-table tbody tr {
+    transition: var(--transition-base);
+}
+
+.plants-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.plants-table tbody tr:hover {
+    background: rgba(76, 175, 80, 0.18);
+}
+
+.plants-table td {
+    color: var(--text-muted);
+}
+
+.add-user-form {
+    background: var(--surface-card);
+    border-radius: var(--radius-medium);
+    padding: 28px;
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    border-radius: var(--radius-small);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 12px 14px;
+    background: rgba(8, 12, 20, 0.72);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: var(--transition-base);
+    resize: vertical;
+}
+
+.form-group textarea {
+    min-height: 120px;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: rgba(0, 200, 83, 0.65);
+    box-shadow: 0 0 0 3px rgba(0, 200, 83, 0.22);
+}
+
+.plants-table td a {
+    color: var(--accent-color);
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition-base);
+}
+
+.plants-table td a:hover {
+    text-decoration: underline;
+    color: #1de9b6;
+}
+
+@media (max-width: 1160px) {
+    .dashboard-container.admin-container {
+        padding: 42px 26px;
+    }
+
+    .admin-section {
+        flex-direction: column;
+    }
+
+    .admin-column.admin-right {
+        max-width: none;
+    }
+}
+
+@media (max-width: 680px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        width: 100%;
+    }
+
+    .plants-table {
+        display: block;
+        overflow-x: auto;
+    }
+}

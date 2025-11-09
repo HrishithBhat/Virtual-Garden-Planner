@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ai_assistant.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='ai_widget.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>AI Assistance</h1>
+            <div class="header-actions">
+                <a href="{{ url_for('api.dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+            </div>
+        </div>
+        <div class="card">
+            <p class="small">Chat with AI about your plants, their health, and general gardening. This chat is not tied to a specific schedule.</p>
+            <div id="aiChat" class="ai-chat-container">
+                <div id="aiMessages" class="ai-messages"></div>
+                <div class="ai-actions">
+                    <form id="aiForm" class="ai-form" onsubmit="return false;">
+                        <input id="aiInput" type="text" placeholder="Ask anything about your plants or gardening..." class="ai-input" required>
+                        <button id="aiSend" class="btn btn-primary">Send</button>
+                    </form>
+                </div>
+                <div id="aiStatus" class="small"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function(){
+            const messagesEl = document.getElementById('aiMessages');
+            const input = document.getElementById('aiInput');
+            const sendBtn = document.getElementById('aiSend');
+            const statusEl = document.getElementById('aiStatus');
+
+            let busy = false;
+            function setBusy(v){
+                busy = !!v;
+                input.disabled = busy;
+                sendBtn.disabled = busy;
+            }
+            function setStatus(msg){ statusEl.textContent = msg || ''; }
+            function escapeHtml(s){
+                return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            }
+            function renderMessageHTML(text){
+                let t = escapeHtml(text);
+                t = t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+                const lines = t.split(/\r?\n/);
+                const out = [];
+                let inList = false;
+                function closeList(){ if(inList){ out.push('</ul>'); inList=false; } }
+                const titleRx = /^(Quick answer|Best option|Good option|Excellent option|Steps|Warnings|Next actions)\s*:/i;
+                for(const raw of lines){
+                    const line = raw.trim();
+                    if(!line){ closeList(); continue; }
+                    if(titleRx.test(line)){
+                        closeList();
+                        const title = line.replace(/:.*/,'');
+                        const badge = /best option/i.test(title)?'best':/good option/i.test(title)?'good':/excellent option/i.test(title)?'excellent':'';
+                        if(badge){
+                            out.push(`<div class="ai-section-title"><span class="ai-badge ${badge}">${title}</span></div>`);
+                        } else {
+                            out.push(`<div class="ai-section-title">${title}</div>`);
+                        }
+                        continue;
+                    }
+                    if(/^(-|•)\s+/.test(line)){
+                        if(!inList){ out.push('<ul class="ai-list">'); inList=true; }
+                        out.push('<li>'+line.replace(/^(-|•)\s+/,'')+'</li>');
+                        continue;
+                    }
+                    closeList();
+                    out.push('<p>'+line+'</p>');
+                }
+                closeList();
+                return out.join('');
+            }
+            function appendMessage(role, text){
+                const wrap = document.createElement('div');
+                wrap.className = 'ai-msg ' + (role === 'user' ? 'ai-user' : 'ai-assistant');
+                if(text){
+                    const p = document.createElement('div');
+                    if(role === 'assistant'){
+                        p.innerHTML = renderMessageHTML(text);
+                    } else {
+                        p.textContent = text;
+                    }
+                    wrap.appendChild(p);
+                }
+                messagesEl.appendChild(wrap);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
+            function loadHistory(){
+                fetch('/api/ai/chat').then(r=>r.json()).then(list=>{
+                    messagesEl.innerHTML='';
+                    (list||[]).forEach(m=> appendMessage(m.role, m.message));
+                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                });
+            }
+            sendBtn.addEventListener('click', function(){
+                if(busy) return;
+                const text = (input.value||'').trim();
+                if(!text) return;
+                appendMessage('user', text);
+                input.value='';
+                setStatus('Thinking...');
+                setBusy(true);
+                fetch('/api/ai/respond', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message:text})})
+                    .then(r=>r.json()).then(res=>{
+                        if(res.error){ appendMessage('assistant', res.error); }
+                        if(res.assistant){ appendMessage('assistant', res.assistant); }
+                        if(!res.error && !res.assistant){ appendMessage('assistant', 'No response'); }
+                        setStatus('');
+                    })
+                    .catch(()=> setStatus('Error'))
+                    .finally(()=> setBusy(false));
+            });
+
+            loadHistory();
+        })();
+    </script>
+    <script src="{{ url_for('static', filename='js/ai_widget.js') }}" defer></script>
+</body>
+</html>

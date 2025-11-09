@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Manage Plants</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_plants.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+</head>
+<body>
+    <!-- Animated leaf particles -->
+    <div class="plants-particles-container"></div>
+    
+    <div class="dashboard-container admin-container">
+        <div class="dashboard-header">
+            <h1 class="plants-title">Manage Plants <span class="plant-icon"><i class="fas fa-seedling"></i></span></h1>
+            <div class="admin-actions">
+                <a href="{{ url_for('api.admin_dashboard') }}" class="btn btn-primary btn-animated">
+                    <i class="fas fa-users"></i>
+                    <span>Manage Users</span>
+                </a>
+                <a href="{{ url_for('api.admin_market') }}" class="btn btn-primary btn-animated">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Manage Market</span>
+                </a>
+                <a href="{{ url_for('api.admin_community') }}" class="btn btn-primary btn-animated">
+                    <i class="fas fa-comments"></i>
+                    <span>Community</span>
+                </a>
+                <a href="{{ url_for('api.logout') }}" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="error info-banner">
+                    {% for msg in messages %}
+                        <div>{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Plant stats cards -->
+        <div class="plant-stats-container">
+            <div class="plant-stat-card">
+                <div class="plant-stat-icon"><i class="fas fa-seedling"></i></div>
+                <div class="plant-stat-value" data-value="{{ plants|length }}">0</div>
+                <div class="plant-stat-label">Total Plants</div>
+            </div>
+            
+            {% set counts = namespace(vegetable=0, fruit=0, herb=0, flower=0) %}
+            {% for p in plants %}
+                {% set t = (p.type or '')|lower|trim %}
+                {% if t in ['vegetable','vegetables'] %}{% set counts.vegetable = counts.vegetable + 1 %}{% endif %}
+                {% if t in ['fruit','fruits'] %}{% set counts.fruit = counts.fruit + 1 %}{% endif %}
+                {% if t in ['herb','herbs'] %}{% set counts.herb = counts.herb + 1 %}{% endif %}
+                {% if t in ['flower','flowers'] %}{% set counts.flower = counts.flower + 1 %}{% endif %}
+            {% endfor %}
+            <div class="plant-stat-card">
+                <div class="plant-stat-icon"><i class="fas fa-carrot"></i></div>
+                <div class="plant-stat-value" data-value="{{ counts.vegetable }}">0</div>
+                <div class="plant-stat-label">Vegetables</div>
+            </div>
+
+            <div class="plant-stat-card">
+                <div class="plant-stat-icon"><i class="fas fa-apple-alt"></i></div>
+                <div class="plant-stat-value" data-value="{{ counts.fruit }}">0</div>
+                <div class="plant-stat-label">Fruits</div>
+            </div>
+
+            <div class="plant-stat-card">
+                <div class="plant-stat-icon"><i class="fas fa-mortar-pestle"></i></div>
+                <div class="plant-stat-value" data-value="{{ counts.herb }}">0</div>
+                <div class="plant-stat-label">Herbs</div>
+            </div>
+        </div>
+
+        <section class="admin-section">
+            <div class="admin-column admin-left">
+                <div class="section-header">
+                    <i class="fas fa-leaf section-icon"></i>
+                    <h3>Existing Plants</h3>
+                </div>
+                
+                <!-- Search and filter options -->
+                <div class="search-filter-plants-container">
+                    <input type="text" id="plantSearch" class="search-plants-input" placeholder="Search plants...">
+                    <div class="filter-plants-buttons">
+                        <button class="filter-plant-btn active" data-filter="all">All Types</button>
+                        <button class="filter-plant-btn" data-filter="vegetable">Vegetables</button>
+                        <button class="filter-plant-btn" data-filter="fruit">Fruits</button>
+                        <button class="filter-plant-btn" data-filter="herb">Herbs</button>
+                        <button class="filter-plant-btn" data-filter="flower">Flowers</button>
+                    </div>
+                </div>
+                
+                <div class="plants-table-container">
+                    <table class="plants-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Scientific Name</th>
+                                <th>Duration</th>
+                                <th>Type</th>
+                                <th>Photo</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for plant in plants %}
+                            <tr class="table-row-plant-animated">
+                                <td title="Actual ID {{ plant.id }}">{{ loop.index }}</td>
+                                <td>{{ plant.name }}</td>
+                                <td><em>{{ plant.scientific_name }}</em></td>
+                                <td>
+                                    <div class="plant-duration" data-days="{{ plant.duration_days }}">
+                                        <span>{{ plant.duration_days }} days</span>
+                                        <div class="duration-bar-container">
+                                            <div class="duration-bar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% set type_norm = (plant.type or '')|lower|trim %}{% if type_norm.endswith('s') %}{% set type_norm = type_norm[:-1] %}{% endif %}
+                                    <span class="plant-type-badge {{ plant.type }}" data-type="{{ type_norm }}">{{ plant.type }}</span>
+                                </td>
+                                <td>
+                                    {% if plant.photo_url %}
+                                        <img src="{{ plant.photo_url }}" alt="{{ plant.name }}" class="plant-image-thumbnail" onerror="this.src='https://via.placeholder.com/50?text=No+Image'">
+                                    {% else %}
+                                        <span>No image</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('api.admin_edit_plant', plant_id=plant.id) }}" class="btn btn-primary btn-icon small">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('api.admin_delete_plant', plant_id=plant.id) }}" class="inline-form" onsubmit="return confirmDelete(event, '{{ plant.name }}');">
+                                        <button type="submit" class="btn btn-danger btn-icon small">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr class="no-data-row">
+                                <td colspan="7" class="no-data-cell">
+                                    <div class="no-data-message">
+                                        <i class="fas fa-seedling"></i>
+                                        <p>No plants found. Add your first plant!</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination example (for future implementation) -->
+                <div class="pagination-container">
+                    <ul class="pagination">
+                        <li class="page-item previous disabled">
+                            <a href="#" class="page-link"><i class="fas fa-chevron-left"></i></a>
+                        </li>
+                        <li class="page-item active">
+                            <a href="#" class="page-link">1</a>
+                        </li>
+                        <li class="page-item">
+                            <a href="#" class="page-link">2</a>
+                        </li>
+                        <li class="page-item">
+                            <a href="#" class="page-link">3</a>
+                        </li>
+                        <li class="page-item next">
+                            <a href="#" class="page-link"><i class="fas fa-chevron-right"></i></a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="admin-column admin-right">
+                <div class="section-header">
+                    <i class="fas fa-plus-circle section-icon"></i>
+                    <h3>Add New Plant</h3>
+                </div>
+                <div class="add-plant-card">
+                    <div class="add-plant-intro">
+                        <i class="fas fa-seedling plant-intro-icon"></i>
+                        <h4>Expand Your Plant Database</h4>
+                        <p>Add new plants to your collection with detailed information for better tracking and management.</p>
+                    </div>
+                    <button type="button" class="btn btn-success btn-add-plant-trigger" id="openAddPlantModal">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Add New Plant</span>
+                    </button>
+                </div>
+                
+                <!-- Featured plants stats or tips could go here -->
+                <div class="plant-tips-container">
+                    <div class="plant-tip-card">
+                        <div class="tip-icon">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <h4>Plant Management Tips</h4>
+                        <ul class="tip-list">
+                            <li>Add scientific names for accurate identification</li>
+                            <li>Include growth duration for better planning</li>
+                            <li>Add high-quality images for easy recognition</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal for adding plants -->
+            <div class="plant-modal-overlay" id="addPlantModal">
+                <div class="plant-modal">
+                    <div class="plant-modal-header">
+                        <h3><i class="fas fa-seedling"></i> Add New Plant</h3>
+                        <button class="modal-close-btn" id="closeAddPlantModal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="plant-modal-body">
+                        <div class="plant-modal-grid">
+                            <form method="POST" action="{{ url_for('api.admin_add_plant') }}" class="add-plant-form" id="addPlantForm">
+                                <div class="animated-plant-form-group">
+                                    <input type="text" name="name" id="plantName" placeholder="Plant Name" required class="animated-plant-input">
+                                    <label for="plantName" class="floating-plant-label">Plant Name</label>
+                                    <span class="plant-input-icon"><i class="fas fa-leaf"></i></span>
+                                </div>
+
+                                <div class="animated-plant-form-group">
+                                    <input type="text" name="scientific_name" id="plantScientificName" placeholder="Scientific Name" required class="animated-plant-input">
+                                    <label for="plantScientificName" class="floating-plant-label">Scientific Name</label>
+                                    <span class="plant-input-icon"><i class="fas fa-microscope"></i></span>
+                                </div>
+
+                                <div class="animated-plant-form-group">
+                                    <input type="number" name="duration_days" id="plantDuration" placeholder="Duration (days)" required min="1" class="animated-plant-input">
+                                    <label for="plantDuration" class="floating-plant-label">Duration (days)</label>
+                                    <span class="plant-input-icon"><i class="fas fa-calendar-alt"></i></span>
+                                </div>
+
+                                <div class="animated-plant-form-group">
+                                    <input type="text" name="type" id="plantType" placeholder="Type of Plant" required class="animated-plant-input">
+                                    <label for="plantType" class="floating-plant-label">Plant Type</label>
+                                    <span class="plant-input-icon"><i class="fas fa-tags"></i></span>
+                                </div>
+
+                                <div class="animated-plant-form-group">
+                                    <input type="url" name="photo_url" id="plantPhotoUrl" placeholder="Photo URL" required class="animated-plant-input">
+                                    <label for="plantPhotoUrl" class="floating-plant-label">Photo URL</label>
+                                    <span class="plant-input-icon"><i class="fas fa-image"></i></span>
+                                </div>
+
+                                <div class="animated-plant-form-group">
+                                    <textarea name="description" id="plantDescription" placeholder="Description" required rows="5" class="animated-plant-textarea"></textarea>
+                                </div>
+
+                                <div class="animated-plant-form-group">
+                                    <input type="text" name="sunlight" id="plantSunlight" placeholder="Sunlight (e.g., Full sun, Partial shade)" class="animated-plant-input">
+                                    <label for="plantSunlight" class="floating-plant-label">Sunlight</label>
+                                    <span class="plant-input-icon"><i class="fas fa-sun"></i></span>
+                                </div>
+                                <div class="animated-plant-form-group">
+                                    <input type="number" name="spacing_cm" id="plantSpacing" placeholder="Spacing (cm)" min="0" class="animated-plant-input">
+                                    <label for="plantSpacing" class="floating-plant-label">Spacing (cm)</label>
+                                    <span class="plant-input-icon"><i class="fas fa-arrows-alt-h"></i></span>
+                                </div>
+                                <div class="animated-plant-form-group">
+                                    <input type="text" name="watering_needs" id="plantWatering" placeholder="Watering needs (e.g., Weekly, 2x/week)" class="animated-plant-input">
+                                    <label for="plantWatering" class="floating-plant-label">Watering</label>
+                                    <span class="plant-input-icon"><i class="fas fa-tint"></i></span>
+                                </div>
+                                <div class="animated-plant-form-group">
+                                    <input type="url" name="model_url" id="plantModelUrl" placeholder="3D Model URL (.glb/.gltf)" class="animated-plant-input">
+                                    <label for="plantModelUrl" class="floating-plant-label">3D Model URL</label>
+                                    <span class="plant-input-icon"><i class="fas fa-cube"></i></span>
+                                </div>
+                                <div class="animated-plant-form-group">
+                                    <input type="number" name="growth_height_cm" id="plantHeight" placeholder="Growth height (cm)" min="0" class="animated-plant-input">
+                                    <label for="plantHeight" class="floating-plant-label">Growth height (cm)</label>
+                                    <span class="plant-input-icon"><i class="fas fa-ruler-vertical"></i></span>
+                                </div>
+                                <div class="animated-plant-form-group">
+                                    <input type="number" name="growth_width_cm" id="plantWidth" placeholder="Growth width (cm)" min="0" class="animated-plant-input">
+                                    <label for="plantWidth" class="floating-plant-label">Growth width (cm)</label>
+                                    <span class="plant-input-icon"><i class="fas fa-ruler-horizontal"></i></span>
+                                </div>
+
+                                <div class="modal-buttons">
+                                    <button type="button" class="btn btn-secondary" id="cancelAddPlant">
+                                        <i class="fas fa-times"></i>
+                                        <span>Cancel</span>
+                                    </button>
+                                    <button type="submit" class="btn btn-success btn-add-plant" id="submitPlantBtn">
+                                        <i class="fas fa-plus-circle"></i>
+                                        <span>Add Plant</span>
+                                    </button>
+                                </div>
+                            </form>
+
+                            <aside class="plant-ai-sidebar" id="plantAiSidebar">
+                                <div class="plant-ai-header">
+                                    <div class="plant-ai-title-block">
+                                        <h4 class="plant-ai-title"><i class="fas fa-robot"></i> AI Plant Assistant</h4>
+                                        <p class="plant-ai-status" id="plantAiStatusText">Provide a plant name to start.</p>
+                                    </div>
+                                    <div class="plant-ai-actions">
+                                        <button type="button" class="btn btn-primary btn-icon small plant-ai-refresh" id="plantAiRefresh" title="Regenerate suggestion">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="plant-ai-duplicate-alert" id="plantAiDuplicateAlert" hidden>
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    <span id="plantAiDuplicateText"></span>
+                                </div>
+                                <div class="plant-ai-similar" id="plantAiSimilarMatches"></div>
+                                <div class="plant-ai-chat-log" id="plantAiChatLog">
+                                    <div class="plant-ai-placeholder" id="plantAiPlaceholderMessage">
+                                        <i class="fas fa-leaf"></i>
+                                        <p>Ask the assistant to tweak any field. It can update the form instantly.</p>
+                                    </div>
+                                </div>
+                                <form class="plant-ai-chat-form" id="plantAiChatForm">
+                                    <div class="plant-ai-input-row">
+                                        <input type="text" id="plantAiChatMessage" class="plant-ai-input-field" placeholder="Ask the assistant..." autocomplete="off">
+                                        <button type="submit" class="btn btn-success plant-ai-send">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            </aside>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <!-- Success message template -->
+    <div class="plants-success-message" id="plantsSuccessMessage">
+        <i class="fas fa-check-circle"></i>
+        <span class="message-text"></span>
+    </div>
+
+    <script>
+        // Confirm delete with animation
+        function confirmDelete(event, plantName) {
+            if (!confirm(`Delete plant "${plantName}"? This action cannot be undone.`)) {
+                event.preventDefault();
+                return false;
+            }
+            
+            const button = event.target.closest('button');
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            button.disabled = true;
+            return true;
+        }
+    </script>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(function() {
+                        showPlantsSuccessMessage("{{ messages[0] }}");
+                    }, 500);
+                });
+            </script>
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Load external JavaScript file -->
+    <script src="{{ url_for('static', filename='admin_plants.js') }}"></script>
+</body>
+</html>

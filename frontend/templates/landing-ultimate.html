@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Garden - Cultivate Your Green Future</title>
+    <meta name="description" content="AI Garden helps you grow better plants with personalized care schedules, disease detection, and expert guidance powered by artificial intelligence.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='ultimate-landing.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
+</head>
+<body>
+    <!-- Scroll Progress Indicator -->
+    <div class="scroll-progress"></div>
+
+    <!-- Custom Cursor -->
+    <div class="custom-cursor"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <a href="#" class="logo">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="AI Garden Logo" onerror="this.src='https://placehold.co/80x80?text=AI+Garden'">
+                AI Garden
+            </a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#how-it-works">How It Works</a></li>
+                    <li><a href="#testimonials">Success Stories</a></li>
+                    {% if session.get('user_id') or session.get('is_admin') %}
+                        <li><a href="{{ url_for('api.dashboard') }}" class="btn btn-primary">Dashboard</a></li>
+                        <li><a href="{{ url_for('api.logout') }}" class="btn btn-outline">Logout</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('api.login') }}" class="btn btn-outline">Login</a></li>
+                        <li><a href="{{ url_for('api.register') }}" class="btn btn-primary btn-magnetic">Get Started</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="video-background">
+            <video autoplay muted loop playsinline>
+                <source src="{{ url_for('static', filename='videos/garden-bg.mp4') }}" type="video/mp4">
+            </video>
+            <div class="video-controls">
+                <button class="video-toggle">Pause</button>
+                <button class="video-mute">Mute</button>
+            </div>
+        </div>
+
+        <div class="particle-container"></div>
+
+        <div class="container">
+            <div class="hero-content">
+                <span class="hero-subtitle fade-in">The future of gardening is here</span>
+                <h1 class="fade-in">Cultivate Your Garden with the Power of AI</h1>
+                <p class="fade-in">AI Garden combines cutting-edge artificial intelligence with gardening expertise to help you grow healthier plants, detect diseases early, and create personalized care schedules tailored to your specific needs.</p>
+                <div class="hero-buttons">
+                    <a href="{{ url_for('api.register') }}" class="btn btn-primary btn-large btn-magnetic fade-in">Start Growing Today</a>
+                    <a href="#features" class="btn btn-outline btn-large fade-in">Explore Features</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-title-container">
+                <span class="section-subtitle fade-in">What We Offer</span>
+                <h2 class="fade-in">Smart Features for Smart Gardening</h2>
+            </div>
+
+            <div class="features-grid stagger-container">
+                <div class="feature-card stagger-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-leaf"></i>
+                    </div>
+                    <h3 class="feature-title">Plant Recognition</h3>
+                    <p>Our AI instantly identifies thousands of plant species from your photos, providing detailed information and care tips specific to each plant.</p>
+                </div>
+
+                <div class="feature-card stagger-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-virus"></i>
+                    </div>
+                    <h3 class="feature-title">Disease Detection</h3>
+                    <p>Detect plant diseases early by simply uploading a photo. Our AI analyzes symptoms and provides treatment recommendations to save your plants.</p>
+                </div>
+
+                <div class="feature-card stagger-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <h3 class="feature-title">Care Schedules</h3>
+                    <p>Get personalized, AI-generated care schedules for each plant in your garden, with reminders for watering, fertilizing, and more.</p>
+                </div>
+
+                <div class="feature-card stagger-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-cloud-sun"></i>
+                    </div>
+                    <h3 class="feature-title">Weather Integration</h3>
+                    <p>Our system adapts care recommendations based on local weather conditions, ensuring your plants get the right care at the right time.</p>
+                </div>
+
+                <div class="feature-card stagger-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h3 class="feature-title">AI Garden Assistant</h3>
+                    <p>Chat with our AI gardening expert for advice, troubleshooting, and answers to your plant-related questions anytime.</p>
+                </div>
+
+                <div class="feature-card stagger-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <h3 class="feature-title">Marketplace</h3>
+                    <p>Browse our curated marketplace for seeds, tools, and accessories tailored to your garden's needs and your plants' requirements.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="how-it-works">
+        <div class="container">
+            <div class="section-title-container">
+                <span class="section-subtitle fade-in">Simple Process</span>
+                <h2 class="fade-in">How AI Garden Works</h2>
+            </div>
+
+            <div class="steps">
+                <div class="step fade-in">
+                    <div class="step-number">1</div>
+                    <h3>Add Your Plants</h3>
+                    <p>Take a photo or search our database to add plants to your digital garden. Our AI will identify the plant and provide basic information.</p>
+                </div>
+
+                <div class="step fade-in">
+                    <div class="step-number">2</div>
+                    <h3>Get Personalized Schedules</h3>
+                    <p>Our AI generates custom care schedules based on your specific plants, local climate, and growing conditions.</p>
+                </div>
+
+                <div class="step fade-in">
+                    <div class="step-number">3</div>
+                    <h3>Monitor & Grow</h3>
+                    <p>Track progress, receive smart notifications, and upload photos to detect issues early. Watch your garden flourish with AI assistance.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="testimonials">
+        <div class="container">
+            <div class="section-title-container">
+                <span class="section-subtitle fade-in">Success Stories</span>
+                <h2 class="fade-in">What Our Users Say</h2>
+            </div>
+
+            <div class="testimonial-slider fade-in">
+                <div class="testimonial-slide">
+                    <div class="testimonial-content">
+                        AI Garden completely transformed my home gardening experience. The disease detection feature saved my tomato plants when they started showing unusual spots. The app immediately identified early blight and recommended a treatment plan that worked perfectly!
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="testimonial-author-img">
+                            <img src="{{ url_for('static', filename='img/testimonial1.jpg') }}" alt="Sarah J." onerror="this.src='https://placehold.co/60x60?text=S.J.'">
+                        </div>
+                        <div class="testimonial-author-info">
+                            <h4>Sarah J.</h4>
+                            <p>Urban Gardener, 2 years with AI Garden</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="testimonial-controls">
+                <span class="testimonial-dot active"></span>
+                <span class="testimonial-dot"></span>
+                <span class="testimonial-dot"></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item fade-in">
+                    <div class="stat-number counter" data-target="50000">0</div>
+                    <div class="stat-label">Happy Gardeners</div>
+                </div>
+                
+                <div class="stat-item fade-in">
+                    <div class="stat-number counter" data-target="10000">0</div>
+                    <div class="stat-label">Plant Species</div>
+                </div>
+                
+                <div class="stat-item fade-in">
+                    <div class="stat-number counter" data-target="2500">0</div>
+                    <div class="stat-label">Disease Treatments</div>
+                </div>
+                
+                <div class="stat-item fade-in">
+                    <div class="stat-number counter" data-target="98">0</div>
+                    <div class="stat-label">% Success Rate</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- App Screenshots Section -->
+    <section class="app-screenshots">
+        <div class="container">
+            <div class="section-title-container">
+                <span class="section-subtitle fade-in">Visual Tour</span>
+                <h2 class="fade-in">See AI Garden in Action</h2>
+            </div>
+
+            <div class="carousel fade-in">
+                <div class="carousel-track">
+                    <div class="carousel-slide">
+                        <div class="screenshot">
+                            <img src="{{ url_for('static', filename='img/screenshot1.jpg') }}" alt="Dashboard Screenshot" onerror="this.src='https://placehold.co/800x500?text=Dashboard'">
+                        </div>
+                    </div>
+                    <div class="carousel-slide">
+                        <div class="screenshot">
+                            <img src="{{ url_for('static', filename='img/screenshot2.jpg') }}" alt="Plant Analysis Screenshot" onerror="this.src='https://placehold.co/800x500?text=Plant+Analysis'">
+                        </div>
+                    </div>
+                    <div class="carousel-slide">
+                        <div class="screenshot">
+                            <img src="{{ url_for('static', filename='img/screenshot3.jpg') }}" alt="Care Schedule Screenshot" onerror="this.src='https://placehold.co/800x500?text=Care+Schedule'">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="carousel-controls">
+                    <div class="carousel-arrow carousel-prev">
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
+                    <div class="carousel-arrow carousel-next">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+
+                <div class="carousel-dots"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="fade-in">Ready to Transform Your Garden?</h2>
+                <p class="fade-in">Join thousands of gardeners who are using AI technology to grow healthier, more vibrant plants with less effort and more success.</p>
+                <div class="cta-buttons">
+                    <a href="{{ url_for('api.register') }}" class="btn btn-secondary btn-large btn-magnetic fade-in">Start Free Trial</a>
+                    <a href="{{ url_for('api.expert_register') }}" class="btn btn-outline btn-large fade-in">Become an Expert</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <a href="#" class="footer-logo">AI Garden</a>
+                    <p>Using artificial intelligence to revolutionize home gardening and plant care for enthusiasts at every skill level.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-col">
+                    <h4 class="footer-heading">Features</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Plant Recognition</a></li>
+                        <li><a href="#">Disease Detection</a></li>
+                        <li><a href="#">Care Schedules</a></li>
+                        <li><a href="#">AI Assistant</a></li>
+                        <li><a href="#">Marketplace</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h4 class="footer-heading">Resources</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Garden Guides</a></li>
+                        <li><a href="#">Video Tutorials</a></li>
+                        <li><a href="{{ url_for('api.community_page') }}">Community</a></li>
+                        <li><a href="#">Support Center</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h4 class="footer-heading">Account</h4>
+                    <ul class="footer-links">
+                        <li><a href="{{ url_for('api.login') }}">Login</a></li>
+                        <li><a href="{{ url_for('api.register') }}">Register</a></li>
+                        <li><a href="{{ url_for('api.expert_login') }}">Expert Login</a></li>
+                        <li><a href="{{ url_for('api.expert_register') }}">Become Expert</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; {{ 2025 }} AI Garden. All rights reserved. Cultivating the future of gardening with artificial intelligence.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/landing-ultimate.js') }}"></script>
+</body>
+</html>

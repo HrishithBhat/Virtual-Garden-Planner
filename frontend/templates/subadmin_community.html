@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sub-admin - Community Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_community.css') }}">
+</head>
+<body>
+    <div class="dashboard-container admin-container">
+        <div class="dashboard-header">
+            <h1>Community Manager</h1>
+            <div class="admin-actions">
+                <a href="{{ url_for('api.subadmin_community') }}" class="btn btn-primary">Community Home</a>
+                <a href="{{ url_for('api.logout') }}" class="btn btn-danger">Logout</a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="error info-banner">
+                    {% for msg in messages %}
+                        <div>{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section class="admin-section">
+            <div class="admin-column admin-left">
+                <h3>Pending Expert Requests</h3>
+                <table class="users-table plants-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Expertise</th>
+                            <th>Resume</th>
+                            <th>Work Samples</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in pending %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ e.name }}</td>
+                            <td>{{ e.email }}</td>
+                            <td>{{ e.expertise }}</td>
+                            <td>{% if e.resume_path %}<a href="{{ url_for('static', filename=e.resume_path) }}" target="_blank">Download</a>{% else %}-{% endif %}</td>
+                            <td>{% if e.samples_path %}<a href="{{ url_for('static', filename=e.samples_path) }}" target="_blank">Download</a>{% else %}-{% endif %}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('api.subadmin_community_approve', expert_id=e.id) }}" class="inline-form" onsubmit="return confirm('Approve {{ e.name }}?');">
+                                    <button type="submit" class="btn btn-success small">Approve</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('api.subadmin_community_reject', expert_id=e.id) }}" class="inline-form" onsubmit="return confirm('Reject {{ e.name }}?');">
+                                    <button type="submit" class="btn btn-danger small">Reject</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7">No pending requests.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <h3 style="margin-top: 24px;">All Experts</h3>
+                <table class="users-table plants-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Expertise</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for x in experts %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ x.name }}</td>
+                            <td>{{ x.email }}</td>
+                            <td>{{ x.expertise }}</td>
+                            <td>{{ x.status }}</td>
+                            <td>
+                                {% if x.status != 'approved' %}
+                                <form method="POST" action="{{ url_for('api.subadmin_community_approve', expert_id=x.id) }}" class="inline-form" onsubmit="return confirm('Approve {{ x.name }}?');">
+                                    <button type="submit" class="btn btn-success small">Approve</button>
+                                </form>
+                                {% endif %}
+                                {% if x.status != 'rejected' %}
+                                <form method="POST" action="{{ url_for('api.subadmin_community_reject', expert_id=x.id) }}" class="inline-form" onsubmit="return confirm('Reject {{ x.name }}?');">
+                                    <button type="submit" class="btn btn-danger small">Reject</button>
+                                </form>
+                                {% endif %}
+                                <form method="POST" action="{{ url_for('api.subadmin_community_delete', expert_id=x.id) }}" class="inline-form" onsubmit="return confirm('Delete expert {{ x.name }} and linked account?');">
+                                    <button type="submit" class="btn btn-danger small">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6">No experts found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

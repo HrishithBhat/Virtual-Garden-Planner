@@ -1,0 +1,85 @@
+/* === embedded from style.css === */
+/* ============================================================================== 
+   NEXT-LEVEL CSS - CUTTING EDGE DESIGN SYSTEM
+   Advanced animations, modern effects, and premium styling
+   ============================================================================== */
+
+:root {
+    --primary-gradient: linear-gradient(135deg, #00c853 0%, #00b248 40%, #00695c 100%);
+    --secondary-gradient: linear-gradient(135deg, #26a69a 0%, #2e7d32 100%);
+    --danger-gradient: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --shadow-light: 0 4px 15px rgba(0, 0, 0, 0.05);
+    --shadow-medium: 0 8px 25px rgba(0, 0, 0, 0.1);
+    --shadow-heavy: 0 20px 40px rgba(0, 0, 0, 0.15);
+    --shadow-glow: 0 0 30px rgba(86, 171, 47, 0.3);
+    --transition-fast: 0.2s ease-out;
+    --transition-medium: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --radius-small: 8px;
+    --radius-medium: 12px;
+    --radius-large: 20px;
+    --radius-xl: 30px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;background:radial-gradient(circle at 20% 80%, rgba(0, 255, 128, 0.06) 0%, transparent 45%),radial-gradient(circle at 80% 20%, rgba(0, 200, 83, 0.06) 0%, transparent 45%),radial-gradient(circle at 40% 40%, rgba(0, 150, 136, 0.08) 0%, transparent 40%),linear-gradient(180deg, #0b0f0c 0%, #0a0e0b 40%, #000000 100%);min-height:100vh;display:block;position:relative;overflow-x:hidden}
+body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background-image:radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,.3), transparent),radial-gradient(2px 2px at 40% 70%, rgba(255,255,255,.2), transparent),radial-gradient(1px 1px at 90% 40%, rgba(255,255,255,.4), transparent),radial-gradient(1px 1px at 50% 50%, rgba(255,255,255,.2), transparent);background-size:550px 550px,350px 350px,250px 250px,150px 150px;animation:particleFloat 20s linear infinite;pointer-events:none;z-index:-1}
+@keyframes particleFloat{0%{transform:translate(0,0) rotate(0deg)}33%{transform:translate(30px,-30px) rotate(120deg)}66%{transform:translate(-20px,20px) rotate(240deg)}100%{transform:translate(0,0) rotate(360deg)}}
+
+.dashboard-container{background:transparent;border:none;padding:1.5rem;width:100%;min-height:100vh;position:relative}
+.dashboard-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:1px solid rgba(255,255,255,.2);position:relative}
+.dashboard-header::after{content:'';position:absolute;bottom:-1px;left:0;width:100%;height:2px;background:var(--primary-gradient);border-radius:2px;animation:headerLineGrow 1s ease-out .5s both}
+@keyframes headerLineGrow{from{width:0}to{width:100%}}
+.header-actions{display:flex;gap:1rem;align-items:center}
+
+.btn{position:relative;width:auto;padding:12px 20px;border:none;border-radius:var(--radius-medium);font-size:16px;font-weight:600;cursor:pointer;transition:all var(--transition-medium);text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:var(--primary-gradient);color:#fff;box-shadow:var(--shadow-medium)}
+.btn-success{background:var(--secondary-gradient);color:#fff;box-shadow:var(--shadow-medium)}
+.btn-danger{background:var(--danger-gradient);color:#fff;box-shadow:var(--shadow-medium)}
+.btn.small{padding:8px 14px;border-radius:var(--radius-small);font-size:14px}
+
+.card{padding:1.5rem;border-radius:var(--radius-large);background:rgba(255,255,255,.9);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);box-shadow:var(--shadow-light)}
+.controls-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.search-label{min-width:80px;color:#333}
+.ai-input{width:100%;padding:12px 14px;border:2px solid rgba(255,255,255,.2);border-radius:var(--radius-medium);background:rgba(255,255,255,.95)}
+
+.error{background:linear-gradient(135deg, rgba(248,215,218,.9) 0%, rgba(245,198,203,.9) 100%);color:#721c24;padding:16px 20px;border-radius:var(--radius-medium);margin:1rem 0;border-left:4px solid #dc3545}
+
+.experts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem}
+.expert-card{background:#fff;border-radius:var(--radius-large);padding:1rem 1.25rem;box-shadow:var(--shadow-light);border-top:4px solid #56ab2f;display:flex;flex-direction:column;gap:.75rem}
+.expert-header{display:flex;gap:.75rem;align-items:center}
+.expert-avatar{width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(86,171,47,.3)}
+.expert-avatar.placeholder{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#c8e6c9,#a5d6a7);color:#2e7d32;font-weight:800}
+.expert-meta{display:flex;flex-direction:column}
+.expert-name{margin:0;color:#333;font-weight:700}
+.expert-role{color:#2e7d32;font-weight:600}
+.expert-bio{margin:0;color:#555}
+.expert-actions{display:flex;gap:.5rem;margin-top:.25rem}
+
+@media (max-width: 768px){.dashboard-container{padding:1rem}.experts-grid{grid-template-columns:1fr}}
+
+/* page-specific community.css below */
+.info-banner{background:#e6f7ff;color:#055160;border-left:4px solid #0d6efd}
+
+/* Recent chats list on community page */
+.recent-chats{display:flex;flex-direction:column;gap:6px}
+.recent-chat-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0}
+.recent-chat-row.clickable{cursor:pointer}
+.recent-chat-row.clickable:hover{background:rgba(0,0,0,.03);border-radius:var(--radius-small)}
+.recent-chat-main{display:flex;align-items:center;gap:8px}
+.chat-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#c8e6c9,#a5d6a7);color:#2e7d32;font-weight:700;border:1px solid rgba(86,171,47,.3)}
+.recent-chat-name{color:#333;font-weight:600}
+.recent-chat-unread{margin-left:6px;color:#2e7d32;font-weight:600}
+
+/* Tabs for Community page */
+.tab-switch{display:flex;gap:8px;margin-bottom:8px}
+.tab-btn{background:rgba(255,255,255,.9);color:#1b5e20;border:1px solid rgba(86,171,47,.25);box-shadow:var(--shadow-light)}
+.tab-btn.active{outline:2px solid rgba(86,171,47,.4);box-shadow:var(--shadow-glow)}
+.tab-panel{margin-top:8px}
+.is-hidden{display:none}
+
+/* Unread badge for chat items */
+.unread-badge{background:#56ab2f;color:#fff;border-radius:999px;padding:2px 8px;font-size:11px;margin-left:8px}

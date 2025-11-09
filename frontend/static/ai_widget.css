@@ -1,0 +1,22 @@
+.assistant-widget{position:fixed;right:16px;bottom:16px;z-index:10000;font-family:inherit}
+.assistant-fab{position:relative;width:56px;height:56px;border-radius:50%;background:#1e88e5;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.15);cursor:pointer;border:none;outline:0}
+.assistant-fab:hover{filter:brightness(1.05)}
+.assistant-fab:active{transform:scale(.98)}
+.assistant-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#e53935;color:#fff;font-size:11px;line-height:18px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.assistant-panel{position:fixed;right:16px;bottom:80px;width:320px;max-height:60vh;background:#fff;border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.2);display:none;flex-direction:column;overflow:hidden}
+.assistant-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f7f9fc;border-bottom:1px solid rgba(0,0,0,.06)}
+.assistant-title{font-size:14px;font-weight:600}
+.assistant-close{background:transparent;border:none;font-size:18px;cursor:pointer}
+.assistant-body{padding:8px;height:260px;overflow:auto;background:#fafbfe}
+.assistant-msg{margin:6px 0;max-width:90%}
+.assistant-user{margin-left:auto;background:#e3f2fd;color:#0d47a1;border-radius:12px 12px 0 12px;padding:8px 10px}
+.assistant-bot{margin-right:auto;background:#f1f8e9;color:#33691e;border-radius:12px 12px 12px 0;padding:8px 10px}
+.assistant-input{display:flex;border-top:1px solid rgba(0,0,0,.06)}
+.assistant-input input{flex:1;padding:10px;border:none;outline:none}
+.assistant-input button{background:#1e88e5;color:#fff;border:none;padding:10px 12px;cursor:pointer}
+.assistant-pending{margin-top:6px;border-top:1px solid rgba(0,0,0,.06);padding-top:6px}
+.assistant-pending-title{font-weight:600;margin-bottom:4px}
+.assistant-pending-item{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:10px;padding:6px 8px;margin:6px 0}
+.assistant-pending-item.done{opacity:.6;text-decoration:line-through}
+.assistant-done-btn{background:#43a047;color:#fff;border:none;border-radius:8px;padding:6px 10px;cursor:pointer}
+@media (max-width:480px){.assistant-panel{right:8px;left:8px;width:auto;max-height:70vh}.assistant-widget{right:8px;bottom:8px}}

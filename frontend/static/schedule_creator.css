@@ -1,0 +1,464 @@
+/* Schedule Creator Styles - Modern Design
+   Created: September 2025 */
+
+:root {
+  --primary: #4caf50;
+  --primary-dark: #388e3c;
+  --primary-light: #81c784;
+  --secondary: #ff9800;
+  --secondary-dark: #f57c00;
+  --secondary-light: #ffb74d;
+  --success: #28a745;
+  --danger: #dc3545;
+  --warning: #ffc107;
+  --info: #17a2b8;
+  --dark: #343a40;
+  --light: #f8f9fa;
+  --gray: #6c757d;
+  --gray-dark: #495057;
+  --gray-light: #e9ecef;
+  --body-bg: #f5f7f9;
+  --card-bg: #ffffff;
+  --text: #212529;
+  --text-muted: #6c757d;
+  --border-radius: 12px;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+  --transition: all 0.3s ease;
+  --radius-large: 16px;
+  --radius-medium: 12px;
+  --radius-small: 8px;
+  --shadow-light: 0 2px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* ===== Schedule Creator Layout ===== */
+.schedule-creator-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.schedule-creator-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+/* ===== Plant Information Section ===== */
+.plant-info-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.plant-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.plant-icon {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+  border-radius: 12px;
+  color: white;
+  font-size: 24px;
+}
+
+.plant-info {
+  flex-grow: 1;
+}
+
+.plant-name {
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.plant-scientific {
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.plant-meta {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.plant-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.plant-meta-item i {
+  color: var(--primary);
+}
+
+.plant-photo-medium {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-light);
+  display: block;
+  margin: 15px 0;
+}
+
+.plant-description {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text);
+  margin-top: 10px;
+}
+
+/* ===== Schedule Generation Form ===== */
+.schedule-form-section {
+  background: var(--card-bg);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow);
+  padding: 25px;
+}
+
+.form-section-title {
+  font-size: 1.3rem;
+  margin-bottom: 20px;
+  color: var(--dark);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-section-title i {
+  color: var(--primary);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: block;
+  color: var(--dark);
+}
+
+.form-select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid var(--gray-light);
+  border-radius: var(--border-radius);
+  background: white;
+  font-size: 1rem;
+  color: var(--text);
+  transition: var(--transition);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  background-size: 16px;
+}
+
+.form-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+  outline: none;
+}
+
+.form-text {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-top: 10px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.form-text i {
+  color: var(--info);
+  margin-right: 5px;
+}
+
+.generate-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 20px 0 15px;
+}
+
+.generate-status {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(76, 175, 80, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--primary);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== Schedule Results ===== */
+.schedule-results {
+  margin-top: 30px;
+}
+
+.schedule-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  color: var(--dark);
+  font-size: 1.3rem;
+}
+
+.schedule-title i {
+  color: var(--primary);
+}
+
+.schedule-list {
+  display: grid;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.schedule-day {
+  background: white;
+  border-radius: var(--radius-large);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  border-left: 5px solid var(--primary);
+  transition: var(--transition);
+  position: relative;
+}
+
+.schedule-day:hover {
+  transform: translateX(5px);
+  box-shadow: var(--shadow);
+}
+
+.schedule-day.completed {
+  border-left-color: var(--success);
+  background: rgba(40, 167, 69, 0.05);
+}
+
+.day-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 10px;
+}
+
+.day-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--gray);
+  border-radius: 4px;
+  display: inline-block;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.day-checkbox:hover {
+  border-color: var(--primary);
+}
+
+.day-checkbox.checked {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.day-checkbox.checked:after {
+  content: "✓";
+  position: absolute;
+  color: white;
+  font-size: 14px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.tasks {
+  margin-left: 30px;
+  display: grid;
+  gap: 8px;
+}
+
+.task {
+  color: var(--text);
+  position: relative;
+  padding-left: 22px;
+  line-height: 1.5;
+}
+
+.task:before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--primary);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.schedule-note {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 15px;
+  font-style: italic;
+}
+
+/* Error message styling */
+.error-inline {
+  background: linear-gradient(135deg, rgba(248,215,218,0.95) 0%, rgba(245,198,203,0.95) 100%);
+  color: var(--danger);
+  padding: 15px;
+  border-radius: var(--radius-medium);
+  margin-top: 15px;
+  border-left: 5px solid var(--danger);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.error-inline i {
+  font-size: 20px;
+}
+
+/* ===== Responsive Styles ===== */
+@media (max-width: 992px) {
+  .schedule-creator-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .generate-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .plant-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .schedule-day {
+    padding: 15px;
+  }
+}
+
+/* ===== New schedule card/grid styles to match provided design ===== */
+.schedule-background {
+  padding: 28px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 18px;
+}
+
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.schedule-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.85));
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.day-pill {
+  background: rgba(255,255,255,0.95);
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+  margin-bottom: 10px;
+}
+
+.card-body { display: flex; flex-direction: column; gap: 8px; }
+.day-title { font-weight: 700; color: var(--dark); }
+.day-icon { font-size: 36px; text-align: center; margin: 8px 0; }
+.day-icon-img { width: 36px; height: 36px; display: inline-block; vertical-align: middle; }
+@media (max-width: 480px) {
+  .day-icon-img { width: 28px; height: 28px; }
+}
+.tasks-grid { display:flex; flex-direction:column; gap:6px; }
+.task-row { display:flex; gap:10px; align-items:center; }
+.task-checkbox { width:18px; height:18px; }
+.task-text { font-size: 0.95rem; color: var(--text); }
+.day-notes { margin-top: 8px; padding: 8px; border-radius: 10px; border: 1px solid var(--gray-light); min-height:44px; resize:vertical; }
+
+/* Done and missed day states */
+.schedule-card.done-day { background: linear-gradient(180deg, rgba(220,255,224,0.95), rgba(230,255,235,0.95)); border: 1px solid #10b981; }
+.schedule-card.missed-day { background: linear-gradient(180deg, rgba(255,240,240,0.95), rgba(255,230,230,0.95)); border: 1px solid #ef4444; }
+.schedule-card .day-pill { background: rgba(255,255,255,0.95); }
+
+.schedule-card.done-day .day-pill { background: #10b981; color: #fff; }
+.schedule-card.missed-day .day-pill { background: #ef4444; color: #fff; }
+
+@media (min-width: 1100px) {
+  .schedule-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
+/* Pending (today) state styling - orange */
+.schedule-card.pending-day { background: linear-gradient(180deg, rgba(255,250,230,0.95), rgba(255,245,220,0.95)); border: 1px solid #f59e0b; }
+.schedule-card.pending-day .day-pill { background: #f59e0b; color: white; }
+
+/* Permanent checked task row */
+.task-row.permanent-checked .task-text { text-decoration: line-through; opacity: 0.85; }
+
+/* Hidden utility for local page (keeps global styles intact) */
+.hidden { display: none !important; }
+
+/* Disabled day visuals and input blocking */
+.schedule-card.disabled-day { opacity: 0.85; pointer-events: none; }
+.schedule-card.disabled-day .task-checkbox { pointer-events: none; cursor: not-allowed; }
+.schedule-card.disabled-day .task-text { opacity: 0.8; }
+
+@media (max-width: 480px) {
+  .day-pill { font-size: 0.9rem; padding: 6px 8px; }
+  .day-icon { font-size: 28px; }
+}

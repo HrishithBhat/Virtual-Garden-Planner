@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Schedule</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='garden_schedule_view.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='schedule_creator.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Create Schedule</h1>
+            <a href="{{ url_for('api.my_garden') }}" class="btn btn-primary">Back to My Garden</a>
+            <a href="{{ url_for('api.logout') }}" class="btn btn-danger">Logout</a>
+        </div>
+
+        <div class="card">
+            <h3>{{ plant.name }} <span class="small">({{ plant.scientific_name }})</span></h3>
+            {% if plant.photo_url %}
+                <img src="{{ plant.photo_url }}" alt="{{ plant.name }}" class="plant-photo-medium">
+            {% endif %}
+            <p class="small">Duration: {{ plant.duration_days }} days • Type: {{ plant.type }}</p>
+            <p class="desc">{{ plant.description }}</p>
+
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('api.garden_schedule_create', garden_id=item.garden_id) }}" id="generateForm">
+                <input type="hidden" name="inline" value="1">
+                <div class="form-group">
+                    <label for="stage" class="form-label">Plant stage</label>
+                    <select id="stage" name="stage" class="form-select">
+                        <option value="seed">Seed</option>
+                        <option value="seedling">Seedling</option>
+                        <option value="vegetative">Vegetative</option>
+                        <option value="flowering">Flowering</option>
+                        <option value="fruiting">Fruiting</option>
+                        <option value="mature">Mature</option>
+                    </select>
+                </div>
+                <p>Click the button below to generate a day-by-day care schedule using Gemini AI. The AI will receive the full plant and your garden item data and render the schedule below with checkboxes for each day.</p>
+                <div class="generate-actions">
+                    <button type="submit" class="btn btn-primary" id="generateBtn">Generate Schedule</button>
+                    <span id="generateStatus" class="generate-status generate-status-offset" aria-live="polite"></span>
+                </div>
+                <div id="inlineError" aria-live="assertive"></div>
+            </form>
+
+            {% if schedule and data %}
+                <hr />
+                <h4>Generated Schedule</h4>
+                <div class="schedule-results">
+                    <div class="schedule-background">
+                        <form method="POST" action="#" id="schedule-checklist-form">
+                            <div class="schedule-grid" id="scheduleGrid" data-schedule-id="{{ schedule.id if schedule else '' }}" data-created-at="{{ schedule.created_at if schedule else '' }}" data-duration="{{ plant.duration_days if plant else '' }}">
+                                {% for day in data %}
+                                    {% set day_idx = loop.index0 %}
+                                    <div class="schedule-card" id="day-{{ day.day if day.day is defined else loop.index }}" data-day="{{ day.day if day.day is defined else loop.index }}">
+                                        <div class="day-pill">Day {{ day.day if day.day is defined else loop.index }}</div>
+                                        <div class="card-body">
+                                            <div class="day-title">{{ day.title or 'Care' }}</div>
+                                            <div class="day-icon" aria-hidden="true">
+                                                {% set t0 = (day.tasks[0] if day.tasks) or '' %}
+                                                {% if 'water' in t0|lower %}
+                                                    <img src="{{ url_for('static', filename='img/icons/water.svg') }}" alt="water" class="day-icon-img">
+                                                {% elif 'fertil' in t0|lower %}
+                                                    <img src="{{ url_for('static', filename='img/icons/leaf.svg') }}" alt="fertilize" class="day-icon-img">
+                                                {% elif 'prun' in t0|lower %}
+                                                    <img src="{{ url_for('static', filename='img/icons/shear.svg') }}" alt="prune" class="day-icon-img">
+                                                {% elif 'pest' in t0|lower or 'inspect' in t0|lower %}
+                                                    <img src="{{ url_for('static', filename='img/icons/bug.svg') }}" alt="inspect" class="day-icon-img">
+                                                {% else %}
+                                                    <img src="{{ url_for('static', filename='img/icons/care.svg') }}" alt="care" class="day-icon-img">
+                                                {% endif %}
+                                            </div>
+
+                                            <div class="tasks-grid">
+                                                {% for t in day.tasks %}
+                                                    <label class="task-row">
+                                                        <input type="checkbox" name="day_{{ day_idx }}_task_{{ loop.index0 }}" class="task-checkbox">
+                                                        <span class="task-text">{{ t }}</span>
+                                                    </label>
+                                                {% endfor %}
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </form>
+                        <div class="schedule-actions" style="margin-top:12px; display:flex; gap:8px;">
+                            <button id="saveScheduleBtn" class="btn btn-primary">Save Schedule</button>
+                            <button id="exportScheduleBtn" class="btn btn-ghost">Export JSON</button>
+                            <span id="saveStatus" class="small" aria-live="polite" style="margin-left:8px"></span>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <script>
+                (function(){
+                    // Toggle individual task via API
+                    function postToggle(scheduleId, day, taskIndex, completed){
+                        return fetch(`/api/schedule/${scheduleId}/task/toggle`, {
+                            method: 'POST',
+                            headers: {'Content-Type':'application/json'},
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ day: day, task_index: taskIndex, completed: completed })
+                        }).then(r=>r.json());
+                    }
+
+                    // Save whole schedule state (including notes and tasks) to server
+                    function postSaveState(scheduleId, state){
+                        return fetch(`/api/schedule/${scheduleId}/save_state`, {
+                            method: 'POST',
+                            headers: {'Content-Type':'application/json'},
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ state: state })
+                        }).then(r=>r.json());
+                    }
+
+                    const scheduleForm = document.getElementById('schedule-checklist-form');
+                    const scheduleId = "{{ schedule.id if schedule else 'null' }}";
+                    if(scheduleForm && scheduleId){
+                        // Attach change listeners to checkboxes
+                        scheduleForm.querySelectorAll('input[type="checkbox"]').forEach(chk=>{
+                            chk.addEventListener('change', (e)=>{
+                                const name = chk.getAttribute('name') || '';
+                                // name like day_0_task_0 or day_0
+                                const parts = name.split('_');
+                                let day = 0, taskIndex = null;
+                                if(parts[0]==='day' && parts.length>=2){ day = parseInt(parts[1],10)+1; }
+                                if(parts.length>=4 && parts[2]==='task'){ taskIndex = parseInt(parts[3],10); }
+                                const completed = chk.checked === true;
+                                if(taskIndex !== null){
+                                    postToggle(scheduleId, day, taskIndex, completed).catch(()=>{});
+                                }
+                                // Save current state to localStorage for persistence between reloads
+                                saveStateToLocal();
+                                // Re-apply day state visuals if available
+                                try{ if(typeof applyDayStates === 'function') applyDayStates(); }catch(e){}
+                            });
+                        });
+
+                        // Save notes to localStorage on blur
+                        scheduleForm.querySelectorAll('.day-notes').forEach((ta, idx)=>{
+                            ta.addEventListener('blur', ()=> saveStateToLocal());
+                        });
+
+                        function collectState(){
+                            const state = { days: [] };
+                            const cards = document.querySelectorAll('.schedule-card');
+                            cards.forEach((card, idx)=>{
+                                const dayText = card.querySelector('.day-pill')?.textContent || '';
+                                const dayMatch = dayText.match(/\d+/);
+                                const dayNum = dayMatch ? parseInt(dayMatch[0],10) : (idx+1);
+                                const tasks = [];
+                                card.querySelectorAll('.tasks-grid .task-row').forEach((row, tIdx)=>{
+                                    const checkbox = row.querySelector('input[type="checkbox"]');
+                                    const textEl = row.querySelector('.task-text');
+                                    tasks.push({ index: tIdx, text: textEl ? textEl.textContent.trim() : '', completed: checkbox ? checkbox.checked : false });
+                                });
+                                const notes = card.querySelector('.day-notes') ? card.querySelector('.day-notes').value : '';
+                                state.days.push({ day: dayNum, tasks: tasks, notes: notes });
+                            });
+                            return state;
+                        }
+
+                        function saveStateToLocal(){
+                            const state = collectState();
+                            try{ localStorage.setItem('schedule_state_'+scheduleId, JSON.stringify(state)); }catch(e){}
+                        }
+
+                        function loadStateFromLocal(){
+                            try{
+                                const raw = localStorage.getItem('schedule_state_'+scheduleId);
+                                if(!raw) return;
+                                const state = JSON.parse(raw);
+                                // determine currentDay from grid so we don't apply future-day checks
+                                const grid = document.getElementById('scheduleGrid');
+                                let currentDay = null;
+                                if(grid){
+                                    const createdAt = grid.dataset.createdAt;
+                                    const duration = parseInt(grid.dataset.duration) || 0;
+                                    try{
+                                        if(createdAt){
+                                            function parseCreatedAt(s){ if(!s) return new Date(s); if(s.indexOf('T')===-1 && s.indexOf(' ')!==-1) s = s.replace(' ','T'); s = s.replace(/\.(\d{3})\d+/,'.$1'); return new Date(s); }
+                                            const start = parseCreatedAt(createdAt);
+                                            const now = new Date();
+                                            const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+                                            const nowUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+                                            const diffDays = Math.floor((nowUtc - startUtc) / (24*60*60*1000));
+                                            currentDay = diffDays + 1;
+                                            if(currentDay < 1) currentDay = 1;
+                                        }
+                                    }catch(e){ currentDay = null; }
+                                    if(currentDay === null) currentDay = duration || 1;
+                                    if(duration && currentDay > duration) currentDay = duration;
+                                }
+
+                                // apply to DOM, but avoid setting checkboxes for today/future
+                                state.days.forEach((d, idx)=>{
+                                    const card = document.querySelectorAll('.schedule-card')[idx];
+                                    if(!card) return;
+                                    // tasks
+                                    d.tasks.forEach((t, tIdx)=>{
+                                        const row = card.querySelectorAll('.tasks-grid .task-row')[tIdx];
+                                        if(!row) return;
+                                        const cb = row.querySelector('input[type="checkbox"]');
+                                        const dayNum = (d.day !== undefined) ? d.day : (idx+1);
+                                        if(cb){
+                                            if(dayNum < currentDay){ cb.checked = !!t.completed; }
+                                        }
+                                        const txt = row.querySelector('.task-text'); if(txt) txt.textContent = t.text || txt.textContent;
+                                    });
+                                });
+                            }catch(e){ }
+                        }
+
+                        // Load saved state (local) on start
+                        loadStateFromLocal();
+
+                        // Compute current day relative to schedule created_at and disable current/future day checkboxes (only allow marking past days)
+                        (function(){
+                            const grid = document.getElementById('scheduleGrid');
+                            if(!grid) return;
+                            const createdAt = grid.dataset.createdAt;
+                            const duration = parseInt(grid.dataset.duration) || 0;
+                            let currentDay = null;
+                            try{
+                                if(createdAt){
+                                    function parseCreatedAt(s){ if(!s) return new Date(s); if(s.indexOf('T')===-1 && s.indexOf(' ')!==-1) s=s.replace(' ','T'); s = s.replace(/\.(\d{3})\d+/,'.$1'); return new Date(s); }
+                                    const start = parseCreatedAt(createdAt);
+                                    const now = new Date();
+                                    const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+                                    const nowUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+                                    const diffDays = Math.floor((nowUtc - startUtc) / (24*60*60*1000));
+                                    currentDay = diffDays + 1;
+                                    if(currentDay < 1) currentDay = 1;
+                                }
+                            }catch(e){ currentDay = null; }
+                            if(currentDay === null) currentDay = duration || 1;
+                            if(duration && currentDay > duration) currentDay = duration;
+
+                            // disable checkboxes for future days only (day > currentDay)
+                            const boxes = grid.querySelectorAll('.task-checkbox');
+                            boxes.forEach(cb=>{
+                                const name = cb.getAttribute('name')||''; // name day_0_task_0
+                                const parts = name.split('_');
+                                let day = null;
+                                if(parts.length>=2 && parts[0]==='day'){
+                                    day = parseInt(parts[1],10)+1; // stored as zero-based
+                                }
+                                if(day!==null && !isNaN(day)){
+                                    if(day > currentDay){ cb.disabled = true; const card = document.getElementById('day-'+day); if(card){ card.classList.add('disabled-day'); card.style.pointerEvents='none'; } }
+                                    else { cb.disabled = false; const card = document.getElementById('day-'+day); if(card){ card.classList.remove('disabled-day'); card.style.pointerEvents=''; } }
+                                }
+                            });
+
+                            // apply day status classes (done/pending/missed)
+                            function applyDayStates(){
+                                document.querySelectorAll('.schedule-card').forEach(card => {
+                                    const d = parseInt(card.dataset.day) || 0;
+                                    const boxes = Array.from(card.querySelectorAll('.task-checkbox'));
+                                    const allChecked = boxes.length>0 && boxes.every(b => (b.checked === true) || (b.getAttribute && (b.getAttribute('data-permanent') === '1' || b.dataset.permanent === '1')) || b.hasAttribute('checked'));
+                                    card.classList.remove('done-day','missed-day','pending-day');
+                                    if(allChecked){
+                                        card.classList.add('done-day');
+                                        boxes.forEach(b=>{ b.disabled = true; b.dataset.permanent = '1'; const row = b.closest('.task-row')||b.closest('label'); if(row) row.classList.add('permanent-checked'); });
+                                    } else if(d < currentDay){
+                                        card.classList.add('missed-day');
+                                    } else if(d === currentDay){
+                                        card.classList.add('pending-day');
+                                    }
+                                });
+                            }
+
+                            applyDayStates();
+                        })();
+
+                        // Save Schedule button
+                        const saveBtn = document.getElementById('saveScheduleBtn');
+                        const saveStatus = document.getElementById('saveStatus');
+                        if(saveBtn){
+                            saveBtn.addEventListener('click', ()=>{
+                                const state = collectState();
+                                saveStatus.textContent = 'Saving...';
+                                postSaveState(scheduleId, state).then(res=>{
+                                    if(res && res.message){ saveStatus.textContent = 'Saved'; setTimeout(()=> saveStatus.textContent = '', 2500); }
+                                    else { saveStatus.textContent = res && res.error ? res.error : 'Save failed'; }
+                                }).catch(()=>{ saveStatus.textContent = 'Save failed'; }).finally(()=>{ saveStateToLocal(); });
+                            });
+                        }
+
+                        // Export button
+                        const exportBtn = document.getElementById('exportScheduleBtn');
+                        if(exportBtn){
+                            exportBtn.addEventListener('click', ()=>{
+                                const state = collectState();
+                                const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url; a.download = `schedule_${scheduleId}.json`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                            });
+                        }
+
+                    }
+                })();
+            </script>
+
+            <script>
+                (function(){
+                    const form = document.getElementById('generateForm');
+                    const btn = document.getElementById('generateBtn');
+                    const status = document.getElementById('generateStatus');
+                    const inlineError = document.getElementById('inlineError');
+
+                    function setLoading(loading){
+                        if(loading){
+                            btn.disabled = true;
+                            btn.innerText = 'Generating...';
+                            status.innerHTML = '<span class="loading-spinner" aria-hidden="true"></span><span class="small">Generating</span>';
+                            inlineError.innerHTML = '';
+                        } else {
+                            btn.disabled = false;
+                            btn.innerText = 'Generate Schedule';
+                            status.innerHTML = '';
+                        }
+                    }
+
+                    form.addEventListener('submit', function(e){
+                        e.preventDefault();
+                        setLoading(true);
+                        const action = form.getAttribute('action');
+                        const formData = new FormData(form);
+
+                        fetch(action, {
+                            method: 'POST',
+                            body: formData,
+                            credentials: 'same-origin'
+                        }).then(async res => {
+                            const text = await res.text();
+                            if(!res.ok){
+                                // Attempt to extract server-rendered error message from response HTML
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(text, 'text/html');
+                                const err = doc.querySelector('.error');
+                                inlineError.innerHTML = err ? '<div class="error-inline">'+err.textContent+'</div>' : '<div class="error-inline">Failed to generate schedule (server error)</div>';
+                                setLoading(false);
+                                return;
+                            }
+                            // Replace the current card with the returned card HTML
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(text, 'text/html');
+                            const newCard = doc.querySelector('.card');
+                            const currentCard = form.closest('.card');
+                            if(newCard && currentCard){
+                                currentCard.replaceWith(newCard);
+                            } else {
+                                // fallback: reload full page
+                                window.location.reload();
+                            }
+                        }).catch(err => {
+                            inlineError.innerHTML = '<div class="error-inline">Network error: '+(err.message||'')+'</div>';
+                        }).finally(()=>{
+                            setLoading(false);
+                        });
+                    });
+                })();
+            </script>
+        </div>
+    </div>
+</body>
+</html>

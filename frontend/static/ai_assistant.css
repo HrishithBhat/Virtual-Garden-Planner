@@ -1,0 +1,338 @@
+:root {
+  --primary-gradient: linear-gradient(135deg, #00c853 0%, #00b248 40%, #00695c 100%);
+  --secondary-gradient: linear-gradient(135deg, #26a69a 0%, #2e7d32 100%);
+  --danger-gradient: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  --shadow-light: 0 6px 24px rgba(0, 0, 0, 0.08);
+  --shadow-medium: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --radius-small: 8px;
+  --radius-medium: 12px;
+  --radius-large: 20px;
+  --body-bg: linear-gradient(140deg, rgba(224, 247, 250, 1) 0%, rgba(200, 230, 201, 0.75) 100%);
+  --body-text: #1c4532;
+  --muted-text: rgba(28, 69, 50, 0.65);
+  --card-bg: rgba(255, 255, 255, 0.92);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--body-bg);
+  color: var(--body-text);
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  color: rgba(0, 105, 92, 0.9);
+}
+
+.small {
+  font-size: 0.9rem;
+  color: var(--muted-text);
+}
+
+.dashboard-container {
+  padding: 36px 20px 48px;
+  max-width: 960px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  margin-bottom: 28px;
+}
+
+.dashboard-header h1 {
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: rgba(0, 77, 64, 0.95);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.card {
+  padding: 26px;
+  border-radius: var(--radius-large);
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: var(--shadow-light);
+}
+
+.card + .card {
+  margin-top: 22px;
+}
+
+.btn {
+  position: relative;
+  width: auto;
+  padding: 12px 22px;
+  border: none;
+  border-radius: var(--radius-medium);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #ffffff;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn:focus-visible {
+  outline: 3px solid rgba(0, 200, 83, 0.3);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: var(--primary-gradient);
+  box-shadow: var(--shadow-medium);
+}
+
+.btn-success {
+  background: var(--secondary-gradient);
+  box-shadow: var(--shadow-medium);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ai-chat-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ai-messages {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-large);
+  padding: 18px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-light);
+  max-height: 400px;
+}
+
+.ai-messages .ai-msg {
+  display: flex;
+  margin: 10px 0;
+}
+
+.ai-messages .ai-msg:first-child {
+  margin-top: 0;
+}
+
+.ai-messages .ai-msg:last-child {
+  margin-bottom: 0;
+}
+
+.ai-messages .ai-msg > div {
+  max-width: 78%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  box-shadow: var(--shadow-light);
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
+.ai-messages .ai-user {
+  justify-content: flex-end;
+}
+
+.ai-messages .ai-user > div {
+  background: var(--primary-gradient);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ai-messages .ai-assistant {
+  justify-content: flex-start;
+}
+
+.ai-messages .ai-assistant > div {
+  background: #ffffff;
+  color: var(--body-text);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.ai-section-title {
+  font-weight: 700;
+  margin: 8px 0 4px;
+  color: rgba(0, 77, 64, 0.9);
+}
+
+.ai-list {
+  margin: 0 0 6px 20px;
+  padding: 0;
+}
+
+.ai-list li {
+  margin: 2px 0;
+}
+
+.ai-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.ai-badge.best {
+  background: rgba(0, 200, 83, 0.15);
+  color: #00c853;
+  border: 1px solid rgba(0, 200, 83, 0.3);
+}
+
+.ai-badge.good {
+  background: rgba(38, 166, 154, 0.18);
+  color: #26a69a;
+  border: 1px solid rgba(38, 166, 154, 0.32);
+}
+
+.ai-badge.excellent {
+  background: rgba(0, 105, 92, 0.18);
+  color: #00695c;
+  border: 1px solid rgba(0, 105, 92, 0.32);
+}
+
+.ai-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.ai-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.ai-input {
+  min-height: 48px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-medium);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ai-input:focus {
+  border-color: rgba(0, 200, 83, 0.6);
+  box-shadow: 0 0 0 3px rgba(0, 200, 83, 0.25);
+  outline: none;
+}
+
+.ai-form .btn {
+  flex-shrink: 0;
+}
+
+.ai-upload {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ai-upload input[type="file"] {
+  background: rgba(255, 255, 255, 0.85);
+  padding: 12px;
+  border-radius: var(--radius-small);
+  border: 1px dashed rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}
+
+#aiStatus {
+  margin-top: 6px;
+  color: var(--muted-text);
+}
+
+@media (max-width: 900px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 28px 18px 40px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.9rem;
+  }
+
+  .card {
+    padding: 22px;
+  }
+
+  .ai-chat-container {
+    gap: 16px;
+  }
+
+  .ai-messages {
+    max-height: 320px;
+  }
+
+  .ai-messages .ai-msg > div {
+    max-width: 92%;
+  }
+
+  .ai-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ai-form .btn {
+    width: 100%;
+  }
+
+  .ai-upload {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ai-upload input[type="file"] {
+    width: 100%;
+  }
+
+  .ai-upload .btn {
+    width: 100%;
+  }
+}

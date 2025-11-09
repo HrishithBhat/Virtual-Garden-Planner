@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community - Experts</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='community.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Community</h1>
+            <div class="header-actions">
+                {% if expert_mode %}
+                <a href="{{ url_for('api.expert_dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+                {% else %}
+                <a href="{{ url_for('api.dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+                <a href="{{ url_for('api.expert_register') }}" class="btn btn-primary">Join as Expert</a>
+                <a href="{{ url_for('api.expert_login') }}" class="btn btn-success">Expert Login</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-1">
+            <div class="tab-switch" role="tablist" aria-label="Community Views">
+                <button id="tab-chats" class="btn tab-btn" role="tab" aria-controls="panel-chats" aria-selected="false">Chats</button>
+                <button id="tab-experts" class="btn tab-btn" role="tab" aria-controls="panel-experts" aria-selected="true">Experts</button>
+            </div>
+            <section id="panel-chats" class="tab-panel is-hidden" role="tabpanel" aria-labelledby="tab-chats">
+                <div id="chatList" class="chat-list"></div>
+                <div class="controls-row" id="chatActions" style="margin-top:8px;">
+                    <a href="{{ url_for('api.chat_page') }}" class="btn btn-primary small">Open Chats</a>
+                </div>
+            </section>
+            <section id="panel-experts" class="tab-panel" role="tabpanel" aria-labelledby="tab-experts">
+                <form method="GET" action="{{ url_for('api.community_page') }}" class="controls-row">
+                    <label class="search-label" for="q">Search</label>
+                    <input class="ai-input search-input-grow" type="text" id="q" name="q" value="{{ q }}" placeholder="Search by name, expertise, or bio">
+                    <label class="search-label" for="expertise">Category</label>
+                    <input class="ai-input" type="text" id="expertise" name="expertise" value="{{ expertise }}" placeholder="e.g., Fruit Plant Expert">
+                    <button class="btn btn-primary" type="submit">Filter</button>
+                </form>
+            </section>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="error info-banner">
+                    {% for msg in messages %}
+                        <div>{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section id="expertsGrid" class="experts-grid">
+            {% for e in experts %}
+            <article class="expert-card">
+                <div class="expert-header">
+                    {% if e.profile_photo_url %}
+                        <img class="expert-avatar" src="{{ e.profile_photo_url }}" alt="{{ e.name }}"/>
+                    {% else %}
+                        <div class="expert-avatar placeholder" aria-hidden="true">{{ e.name[:1] }}</div>
+                    {% endif %}
+                    <div class="expert-meta">
+                        <h3 class="expert-name">{{ e.name }}</h3>
+                        <div class="expert-role">{{ e.expertise }}</div>
+                    </div>
+                </div>
+                {% if e.bio %}
+                <p class="expert-bio">{{ e.bio }}</p>
+                {% endif %}
+                <div class="expert-actions">
+                    <button type="button" class="btn btn-primary small" onclick="startChat('{{ e.id }}')">Chat</button>
+                </div>
+            </article>
+            {% else %}
+            <div class="card">No experts found.</div>
+            {% endfor %}
+        </section>
+    </div>
+    <script>
+    function startChat(expertId){
+        fetch("{{ url_for('api.chat_start') }}", { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({expert_id: expertId}) })
+            .then(async r=>{
+                if(r.status === 401 || r.redirected){ window.location.href = "{{ url_for('api.login') }}"; return null; }
+                try{ return await r.json(); }catch(_){ return null; }
+            })
+            .then(res=>{
+                if(!res) return;
+                if(res.url){ window.location.href = res.url; }
+                else if(res.error){ alert(res.error); }
+            })
+            .catch(function(){});
+    }
+    (function(){
+        const CURRENT_USER_ID = "{{ session.get('user_id') or '' }}";
+        const EXPERT_MODE = {% if expert_mode %}true{% else %}false{% endif %};
+        const tabChats = document.getElementById('tab-chats');
+        const tabExperts = document.getElementById('tab-experts');
+        const panelChats = document.getElementById('panel-chats');
+        const panelExperts = document.getElementById('panel-experts');
+        const expertsGrid = document.getElementById('expertsGrid');
+        const chatListEl = document.getElementById('chatList');
+        let chatPoll = null;
+
+        function setTab(name){
+            const isChats = name === 'chats';
+            panelChats.classList.toggle('is-hidden', !isChats);
+            panelExperts.classList.toggle('is-hidden', isChats);
+            expertsGrid.style.display = isChats ? 'none' : '';
+            tabChats.classList.toggle('active', isChats);
+            tabExperts.classList.toggle('active', !isChats);
+            tabChats.setAttribute('aria-selected', isChats ? 'true' : 'false');
+            tabExperts.setAttribute('aria-selected', !isChats ? 'true' : 'false');
+            if(isChats){ loadChats(); clearInterval(chatPoll); chatPoll = setInterval(loadChats, 1000); }
+            else { clearInterval(chatPoll); }
+        }
+
+        function chatRow(c){
+            const title = c.title || (Array.isArray(c.participants) ? c.participants.join(', ') : ('Chat '+c.id));
+            const name = (Array.isArray(c.participants) && c.participants.length ? c.participants[0] : title);
+            const initial = (name && name[0]) ? name[0].toUpperCase() : 'C';
+            const row = document.createElement('div'); row.className = 'recent-chat-row clickable';
+            const left = document.createElement('div'); left.className = 'recent-chat-main';
+            const badge = document.createElement('span'); badge.className = 'chat-avatar'; badge.textContent = initial;
+            const nameEl = document.createElement('span'); nameEl.className = 'recent-chat-name'; nameEl.textContent = title;
+            if((c.unread||0)>0){
+                const unread = document.createElement('span'); unread.className = 'unread-badge'; unread.textContent = String(c.unread);
+                nameEl.appendChild(unread);
+            }
+            left.appendChild(badge); left.appendChild(nameEl);
+            const btn = document.createElement('a'); btn.className='btn btn-primary small'; btn.textContent='Open'; btn.href = "{{ url_for('api.chat_page') }}" + '?c=' + c.id + (EXPERT_MODE ? '&only_users=1' : '');
+            const del = document.createElement('button'); del.className='btn btn-danger small'; del.textContent='Remove';
+            del.addEventListener('click', function(e){ e.stopPropagation(); if(!confirm('Remove this chat?')) return; fetch(`/api/chat/${c.id}/remove`, {method:'POST'}).then(()=> loadChats()).catch(function(){}); });
+            row.appendChild(left); row.appendChild(btn); row.appendChild(del);
+            row.addEventListener('click', function(e){ if(e.target && e.target.tagName === 'A') return; window.location.href = btn.href; });
+            return row;
+        }
+
+        function loadChats(){
+            if(!CURRENT_USER_ID){ chatListEl.innerHTML = '<div class="info-banner">Please login to view your chats.</div>'; return; }
+            const url = EXPERT_MODE ? "{{ url_for('api.chat_conversations') }}" : "{{ url_for('api.chat_conversations') }}?only_experts=1";
+            fetch(url).then(r=>r.json()).then(list=>{
+                chatListEl.innerHTML='';
+                const data = Array.isArray(list) ? (EXPERT_MODE ? list.filter(c=> !c.is_expert_chat) : list) : [];
+                if(!data.length){ chatListEl.innerHTML = EXPERT_MODE ? '<div class="card">No chats yet. You will see users who message you here.</div>' : '<div class="card">No expert chats yet. Start one from the Experts tab.</div>'; return; }
+                const wrap = document.createElement('div'); wrap.className = 'recent-chats card';
+                const h3 = document.createElement('h3'); h3.textContent = EXPERT_MODE ? 'Users who messaged you' : 'Expert Chats'; wrap.appendChild(h3);
+                data.forEach(c=> wrap.appendChild(chatRow(c)));
+                chatListEl.appendChild(wrap);
+            }).catch(function(){});
+        }
+
+        tabChats.addEventListener('click', function(){ setTab('chats'); window.location.hash = '#chats'; });
+        tabExperts.addEventListener('click', function(){ setTab('experts'); window.location.hash = '#experts'; });
+
+        const hash = (window.location.hash||'').toLowerCase();
+        if(hash === '#chats'){ setTab('chats'); } else { setTab('experts'); }
+    })();
+    </script>
+</body>
+</html>

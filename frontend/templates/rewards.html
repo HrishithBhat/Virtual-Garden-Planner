@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rewards & Progress</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+<body>
+  <main class="dashboard-container">
+    <header class="dashboard-header">
+      <h1>Rewards & Progress</h1>
+      <div class="header-actions">
+        <a href="{{ url_for('api.dashboard') }}" class="btn">Back</a>
+      </div>
+    </header>
+
+    <section class="card">
+      <div id="summary" class="rewards-summary">
+        <div class="rewards-item">
+          <h3>Total Points 🪙</h3>
+          <div id="totalPoints" class="large">—</div>
+        </div>
+        <div class="rewards-item">
+          <h3>Current Streak 🔥</h3>
+          <div id="currentStreak" class="large">—</div>
+        </div>
+        <div class="rewards-item">
+          <h3>Unlocked Badges 🏅</h3>
+          <div id="badgesList">—</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card mt-1">
+      <h2>Progress & AI-assigned Rewards</h2>
+      <p class="small">Rewards are determined automatically by the AI based on your activity and progress. Manual quick actions have been removed.</p>
+      <div class="controls-row">
+        <button class="btn" id="refreshRewards">Refresh Rewards</button>
+      </div>
+      <p class="small">Pro users receive +10% points automatically.</p>
+    </section>
+
+    <style>
+      /* Simple badge animation */
+      .badge-award-wrap{position:relative}
+      .badge-award{display:inline-block;padding:8px 12px;border-radius:8px;background:linear-gradient(135deg,#ffd54a,#ffb74d);color:#2b2b2b;font-weight:700;transform:scale(0);opacity:0;transition:transform .45s cubic-bezier(.2,.9,.2,1),opacity .45s}
+      .badge-award.show{transform:scale(1.12);opacity:1}
+      .badge-award.pop{transform:scale(1);}
+      /* Leaderboard styles (blue, rounded, card-like) */
+      .leaderboard-card{position:relative;margin:0 auto;background:linear-gradient(180deg,#0d1b3d,#0b1530);border-radius:16px;padding:16px 12px;box-shadow:0 10px 30px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);max-width:760px}
+      .leaderboard-title{display:inline-block;margin:-28px auto 12px;padding:8px 18px;border-radius:14px;background:#27407a;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.4);font-weight:700;letter-spacing:.5px}
+      .leaderboard-list{display:block}
+      .lb-row{display:grid;grid-template-columns:48px 48px 1fr 140px 90px;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);padding:10px 12px;border-radius:12px;margin:8px 6px;color:#e6ecff}
+      .lb-row:nth-child(odd){background:rgba(255,255,255,.03)}
+      .lb-rank{display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff}
+      .lb-medal{font-size:18px}
+      .lb-avatar{width:40px;height:40px;border-radius:50%;background:#e0e7ff;color:#1a237e;display:flex;align-items:center;justify-content:center;font-weight:700}
+      .lb-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .pro-tag{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:6px;background:#80e27e;color:#0a3d0a;font-size:12px}
+      .lb-stars{color:#fbc02d;letter-spacing:1px}
+      .lb-star{filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
+      .lb-score{text-align:right;font-weight:800;color:#fff}
+      @media (max-width:600px){.lb-row{grid-template-columns:36px 36px 1fr 90px 68px}.leaderboard-card{padding:12px 8px}.leaderboard-title{margin-top:-24px}}
+    </style>
+
+    <section class="card mt-1">
+      <h2>Leaderboard 👑</h2>
+      <div id="leaderboard"></div>
+    </section>
+
+    <div id="toast" aria-live="polite" style="position:fixed;right:20px;bottom:20px;"></div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+  <script>
+    function showConfetti(){
+      // Use canvas-confetti if available for richer effects
+      try{
+        if (typeof confetti === 'function'){
+          confetti({
+            particleCount: 140,
+            spread: 100,
+            ticks: 200,
+            origin: { y: 0.6 },
+            colors: ['#ffc107','#ff5722','#8bc34a','#03a9f4','#e91e63']
+          });
+          // layered bursts
+          setTimeout(()=> confetti({ particleCount: 80, spread: 120, origin: { y: 0.6 } }), 250);
+        } else {
+          // fallback simple bursts
+          for(let i=0;i<3;i++){
+            setTimeout(()=>{
+              try{ window.confetti && window.confetti({particleCount:60, spread:70, origin:{y:0.6}}); }catch(e){}
+            }, i*200);
+          }
+        }
+      }catch(e){
+        // no-op
+      }
+    }
+
+    function showBadgeAnimation(name){
+      const bl = document.getElementById('badgesList');
+      const wrap = document.createElement('span'); wrap.className='badge-award-wrap';
+      const badge = document.createElement('span'); badge.className='badge-award'; badge.textContent = name;
+      wrap.appendChild(badge);
+      bl.prepend(wrap);
+      setTimeout(()=> badge.classList.add('show'), 20);
+      setTimeout(()=> badge.classList.add('pop'), 480);
+      showConfetti();
+      setTimeout(()=> { badge.classList.remove('pop'); badge.classList.remove('show'); }, 3500);
+    }
+
+    async function fetchRewards(){
+      try{
+        const res = await fetch('/api/rewards');
+        const data = await res.json();
+        if(data.error) throw new Error(data.error);
+        document.getElementById('totalPoints').textContent = data.total_points || 0;
+        const streak = data.streak || {current_streak:0};
+        document.getElementById('currentStreak').textContent = (streak.current_streak || 0) + (streak.last_action_date?(' (last: '+streak.last_action_date+')'):'');
+        const badges = data.badges || [];
+        const bl = document.getElementById('badgesList');
+        bl.innerHTML = badges.map(b=> b.awarded_at ? `<span class="badge unlocked">${b.name}</span>` : `<span class="badge locked">${b.name}</span>`).join(' ');
+        renderLeaderboard(data.leaderboard || [], data.is_pro);
+
+        if(data.awarded){
+          const aw = data.awarded;
+          if(aw.awarded_badges && aw.awarded_badges.length){
+            const codeToName = {};
+            badges.forEach(b => { if(b.code) codeToName[b.code]=b.name; });
+            aw.awarded_badges.forEach(code => { const name = codeToName[code] || code; showBadgeAnimation(name); });
+          }
+          if(aw.awarded_points && aw.awarded_points.length){ showConfetti(); }
+        }
+      }catch(e){ console.error(e); }
+    }
+
+    function renderLeaderboard(list, isProFlag){
+      const el = document.getElementById('leaderboard');
+      if(!list || list.length===0){ el.innerHTML = '<div class="empty-state">No leaderboard data yet.</div>'; return; }
+      const maxPts = Math.max.apply(null, list.map(x=> Number(x.points)||0));
+      function starsFor(p){ if(!maxPts) return 3; const ratio = p/maxPts; return Math.max(1, Math.min(5, Math.round(1 + ratio*4))); }
+      function medalFor(i){ return i===0?'🥇': i===1?'🥈': i===2?'🥉': String(i+1); }
+      const rows = list.map((r,idx)=>{
+        const uname = (r.username||'User');
+        const initial = uname.trim().charAt(0).toUpperCase() || 'U';
+        const s = starsFor(Number(r.points||0));
+        const proTag = r.is_pro ? '<span class="pro-tag">Pro</span>' : '';
+        const starIcons = '★★★★★'.slice(0,s).split('').map(_=>'<span class="lb-star">★</span>').join('') + '☆☆☆☆☆'.slice(0,5-s);
+        const rank = idx<3 ? `<span class="lb-medal">${medalFor(idx)}</span>` : `<span>${idx+1}</span>`;
+        return `<div class="lb-row">`+
+               `<div class="lb-rank">${rank}</div>`+
+               `<div class="lb-avatar"><span>${initial}</span></div>`+
+               `<div class="lb-name">${uname}${proTag}</div>`+
+               `<div class="lb-stars" aria-label="${s} stars">${starIcons}</div>`+
+               `<div class="lb-score">${r.points}</div>`+
+               `</div>`;
+      }).join('');
+      el.innerHTML = `<div class="leaderboard-card"><div class="leaderboard-title">LEADERBOARD</div><div class="leaderboard-list">${rows}</div></div>`;
+    }
+
+    function showToast(msg){
+      const t = document.getElementById('toast');
+      const n = document.createElement('div'); n.className='toast small'; n.textContent = msg;
+      t.appendChild(n); setTimeout(()=> n.remove(),3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      fetchRewards();
+      const ref = document.getElementById('refreshRewards'); if(ref) ref.addEventListener('click', ()=> fetchRewards());
+    });
+  </script>
+</body>
+</html>

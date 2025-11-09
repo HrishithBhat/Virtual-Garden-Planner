@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Log plant growth, track notes, and monitor timelines with the Garden Journal &amp; Progress Tracker.">
+    <title>Garden Journal &amp; Progress Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='garden_journal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='ai_widget.css') }}">
+</head>
+
+<body>
+    <main class="dashboard-container" role="main">
+        <header class="dashboard-header">
+            <h1>Garden Journal &amp; Progress Tracker</h1>
+            <div class="header-actions">
+                <a href="{{ url_for('api.dashboard') }}" class="btn btn-primary" aria-label="Return to dashboard">
+                    Dashboard
+                </a>
+                <a href="{{ url_for('api.my_garden') }}" class="btn btn-primary" aria-label="Open My Garden">
+                    My Garden
+                </a>
+                <a href="{{ url_for('api.logout') }}" class="btn btn-danger" aria-label="Log out">
+                    Logout
+                </a>
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="journal-alert" role="alert">
+                    <strong>Notice:</strong>
+                    <ul>
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="journal-page">
+            <div class="journal-layout">
+                <aside class="journal-sidebar" aria-label="Plant journals navigation">
+                    <section class="journal-card">
+                        <h2 class="journal-section-title">Journals by Plant</h2>
+                        {% if journals %}
+                            <ul class="journal-list" role="list">
+                                {% for journal in journals %}
+                                    <li class="journal-list-item" role="listitem">
+                                        <a href="{{ url_for('api.garden_journal', journal_id=journal.id) }}"
+                                           class="journal-link{% if journal.id == active_journal_id %} active{% endif %}"
+                                           aria-current="{{ 'page' if journal.id == active_journal_id else 'false' }}">
+                                            {% if journal.plant_photo %}
+                                                {% set photo_src = journal.plant_photo %}
+                                                {% if not photo_src.startswith('http') %}
+                                                    {% set photo_src = url_for('static', filename=photo_src) %}
+                                                {% endif %}
+                                                <img src="{{ photo_src }}" alt="{{ journal.plant_name or journal.title }}"
+                                                     class="journal-plant-avatar" loading="lazy">
+                                            {% else %}
+                                                <div class="journal-placeholder-avatar" aria-hidden="true">
+                                                    {{ (journal.title or 'P')[0]|upper }}
+                                                </div>
+                                            {% endif %}
+                                            <div class="journal-link-text">
+                                                <span class="journal-plant-name">{{ journal.title }}</span>
+                                                <span class="journal-plant-meta">
+                                                    {{ journal.entry_count }} {{ 'entry' if journal.entry_count == 1 else 'entries' }}
+                                                    {% if journal.latest_entry_date %}
+                                                        • Last update {{ journal.latest_entry_date.strftime('%b %d, %Y') }}
+                                                    {% endif %}
+                                                </span>
+                                            </div>
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="journal-empty">
+                                You haven’t started a journal yet. Add plants to your garden to begin tracking their growth.
+                            </p>
+                        {% endif %}
+                    </section>
+
+                    <section class="journal-card journal-sidebar-guide">
+                        <h2 class="journal-section-title">Get Started</h2>
+                        <p class="journal-empty">
+                            Select a plant from your garden and save your first entry to create a timeline. Need a plant?
+                        </p>
+                        <div class="journal-sidebar-actions">
+                            <button type="button" class="btn btn-ghost" data-action="start-new-journal">
+                                Start a fresh journal
+                            </button>
+                            <a href="{{ url_for('api.my_garden') }}" class="btn btn-primary">
+                                Add plants in My Garden
+                            </a>
+                        </div>
+                    </section>
+                </aside>
+
+                <section class="journal-main">
+                    <section class="journal-card journal-form-card">
+                        {% if active_journal %}
+                            {% set highlight_photo = active_journal.plant_photo %}
+                            {% if highlight_photo and not highlight_photo.startswith('http') %}
+                                {% set highlight_photo = url_for('static', filename=highlight_photo) %}
+                            {% endif %}
+                            <div class="journal-highlight">
+                                {% if highlight_photo %}
+                                    <img src="{{ highlight_photo }}" alt="{{ active_journal.plant_name or active_journal.title }}" loading="lazy">
+                                {% endif %}
+                                <div class="journal-highlight-details">
+                                    <div class="journal-highlight-title">{{ active_journal.title }}</div>
+                                    <div class="journal-highlight-meta">
+                                        {% if active_journal.plant_name %}
+                                            <span><strong>Plant:</strong> {{ active_journal.plant_name }}</span>
+                                        {% endif %}
+                                        {% if active_journal.plant_scientific_name %}
+                                            <span><strong>Scientific:</strong> {{ active_journal.plant_scientific_name }}</span>
+                                        {% endif %}
+                                        {% if active_journal.entry_count %}
+                                            <span><strong>Entries:</strong> {{ active_journal.entry_count }}</span>
+                                        {% endif %}
+                                        {% if active_journal.latest_entry_date %}
+                                            <span><strong>Latest:</strong> {{ active_journal.latest_entry_date.strftime('%b %d, %Y') }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <form id="journalEntryForm"
+                              class="journal-form"
+                              method="POST"
+                              action="{{ url_for('api.garden_journal_save_entry') }}"
+                              enctype="multipart/form-data"
+                              data-today="{{ today }}">
+                            <input type="hidden" name="entry_id" id="entryIdInput">
+                            <input type="hidden" name="journal_id" id="journalIdInput" value="{{ active_journal.id if active_journal else '' }}">
+
+                            <div class="journal-form-row">
+                                <div class="journal-field">
+                                    <label for="journalPlantSelect" class="journal-label">Plant</label>
+                                    <select id="journalPlantSelect"
+                                            name="plant_id"
+                                            class="journal-select"
+                                            {% if not plant_options %}disabled{% endif %}
+                                            data-active-plant="{{ active_journal.plant_id if active_journal else '' }}">
+                                        <option value="">Select a plant</option>
+                                        {% for plant in plant_options %}
+                                            <option value="{{ plant.plant_id }}"
+                                                {% if active_journal and plant.plant_id == active_journal.plant_id %}selected{% endif %}>
+                                                {{ plant.name }}{% if plant.nickname %} ({{ plant.nickname }}){% endif %}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="journal-field">
+                                    <label for="journalTitleInput" class="journal-label">Journal name</label>
+                                    <input type="text"
+                                           id="journalTitleInput"
+                                           name="journal_title"
+                                           maxlength="120"
+                                           placeholder="E.g., Blooming Basil Tracker"
+                                           class="journal-input"
+                                           value="{{ active_journal.title if active_journal else '' }}"
+                                           data-active-title="{{ active_journal.title if active_journal else '' }}">
+                                </div>
+                                <div class="journal-field">
+                                    <label for="journalDateInput" class="journal-label">Entry date</label>
+                                    <input type="date"
+                                           id="journalDateInput"
+                                           name="entry_date"
+                                           class="journal-input"
+                                           value="{{ today }}"
+                                           max="{{ today }}">
+                                </div>
+                            </div>
+
+                            <div class="journal-form-row">
+                                <div class="journal-field">
+                                    <label for="journalHeightInput" class="journal-label">Height (cm)</label>
+                                    <input type="number"
+                                           step="0.1"
+                                           min="0"
+                                           id="journalHeightInput"
+                                           name="growth_height_cm"
+                                           class="journal-input"
+                                           placeholder="Optional">
+                                </div>
+                                <div class="journal-field">
+                                    <label for="journalWidthInput" class="journal-label">Spread (cm)</label>
+                                    <input type="number"
+                                           step="0.1"
+                                           min="0"
+                                           id="journalWidthInput"
+                                           name="growth_width_cm"
+                                           class="journal-input"
+                                           placeholder="Optional">
+                                </div>
+                            </div>
+
+                            <div class="journal-field">
+                                <label for="journalNotesInput" class="journal-label">Notes</label>
+                                <textarea id="journalNotesInput"
+                                          name="notes"
+                                          class="journal-textarea"
+                                          placeholder="Record today's observations, care actions, or reminders."></textarea>
+                            </div>
+
+                            <div class="journal-photo-upload">
+                                <label for="journalPhotoInput" class="journal-label">Add a photo</label>
+                                <input type="file"
+                                       id="journalPhotoInput"
+                                       name="photo"
+                                       accept="image/*"
+                                       class="journal-input">
+
+                                <div id="journalPhotoPreviewWrapper" class="journal-photo-preview journal-hidden">
+                                    <img id="journalPhotoPreview" src="" alt="Selected journal entry photo preview">
+                                </div>
+
+                                <div id="journalRemovePhotoGroup" class="journal-remove-photo journal-hidden">
+                                    <input type="checkbox" id="journalRemovePhoto" name="remove_photo" value="1">
+                                    <label for="journalRemovePhoto">Remove current photo from this entry</label>
+                                </div>
+                            </div>
+
+                            <div class="journal-form-actions">
+                                <button type="submit" class="btn btn-success">
+                                    Save journal entry
+                                </button>
+                                {% if active_journal %}
+                                    <button type="button" class="btn btn-ghost" data-action="log-existing-journal">
+                                        Log new update for this plant
+                                    </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-ghost" data-action="start-new-journal">
+                                    Start journal for another plant
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <section class="journal-card journal-timeline-card">
+                        <h2 class="journal-section-title">Timeline</h2>
+                        {% if active_entries %}
+                            <ol class="journal-entry-list" role="list">
+                                {% for entry in active_entries %}
+                                    <li class="journal-entry-item" role="listitem">
+                                        <span class="journal-entry-dot" aria-hidden="true"></span>
+                                        <div class="journal-entry-header">
+                                            <div class="journal-entry-date">
+                                                {% if entry.entry_date %}
+                                                    {{ entry.entry_date.strftime('%b %d, %Y') }}
+                                                {% else %}
+                                                    Logged entry
+                                                {% endif %}
+                                            </div>
+                                            <div class="journal-entry-meta">
+                                                {% if entry.growth_height_cm is not none %}
+                                                    <span>Height: {{ entry.growth_height_cm }} cm</span>
+                                                {% endif %}
+                                                {% if entry.growth_width_cm is not none %}
+                                                    <span>Spread: {{ entry.growth_width_cm }} cm</span>
+                                                {% endif %}
+                                                {% if entry.updated_at %}
+                                                    <span>Updated {{ entry.updated_at.strftime('%b %d, %Y') }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% if entry.notes %}
+                                            <div class="journal-entry-notes">{{ entry.notes.replace('\n', '<br>')|safe }}</div>
+                                        {% endif %}
+                                        {% if entry.photo_path %}
+                                            {% set entry_photo = entry.photo_path %}
+                                            {% if entry_photo and not entry_photo.startswith('http') %}
+                                                {% set entry_photo = url_for('static', filename=entry_photo) %}
+                                            {% endif %}
+                                            <div class="journal-entry-photo">
+                                                <img src="{{ entry_photo }}" alt="Journal photo for {{ active_journal.title }} on {{ entry.entry_date.strftime('%b %d, %Y') if entry.entry_date }}" loading="lazy">
+                                            </div>
+                                        {% endif %}
+                                        <div class="journal-entry-actions">
+                                            <button type="button"
+                                                    class="btn btn-primary small journal-entry-edit"
+                                                    data-entry-id="{{ entry.id }}"
+                                                    data-journal-id="{{ active_journal.id if active_journal else '' }}"
+                                                    data-plant-id="{{ active_journal.plant_id if active_journal else '' }}"
+                                                    data-journal-title="{{ active_journal.title if active_journal else '' }}"
+                                                    data-entry-date="{{ entry.entry_date.strftime('%Y-%m-%d') if entry.entry_date }}"
+                                                    data-growth-height="{{ entry.growth_height_cm if entry.growth_height_cm is not none }}"
+                                                    data-growth-width="{{ entry.growth_width_cm if entry.growth_width_cm is not none }}"
+                                                    data-notes="{{ entry.notes|default('')|e }}"
+                                                    data-photo-url="{{ entry_photo if entry.photo_path else '' }}">
+                                                Edit entry
+                                            </button>
+                                        </div>
+                                    </li>
+                                {% endfor %}
+                            </ol>
+                        {% else %}
+                            <p class="journal-empty">
+                                No entries logged yet. Save your first update to begin the progress timeline.
+                            </p>
+                        {% endif %}
+                    </section>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/garden_journal.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/ai_widget.js') }}" defer></script>
+</body>
+
+</html>

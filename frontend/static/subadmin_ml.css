@@ -1,0 +1,304 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --primary-color: #4caf50;
+    --secondary-color: #1b5e20;
+    --accent-color: #00bfa5;
+    --danger-color: #e53935;
+    --surface-overlay: rgba(8, 12, 20, 0.72);
+    --surface-card: rgba(13, 19, 30, 0.82);
+    --border-soft: rgba(255, 255, 255, 0.08);
+    --text-primary: #f4f6fb;
+    --text-muted: rgba(244, 246, 251, 0.68);
+    --radius-large: 20px;
+    --radius-medium: 12px;
+    --radius-small: 6px;
+    --shadow-soft: 0 20px 45px rgba(0, 0, 0, 0.35);
+    --shadow-card: 0 14px 30px rgba(0, 0, 0, 0.3);
+    --transition-base: all 0.3s ease;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: radial-gradient(circle at top, rgba(58, 104, 170, 0.35), rgba(10, 16, 26, 0.92) 40%), linear-gradient(160deg, #0b101a, #121c2c);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 0 0 48px;
+}
+
+.dashboard-container.admin-container {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 46px 30px 40px;
+    background: var(--surface-overlay);
+    border-radius: var(--radius-large);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 36px;
+}
+
+.dashboard-header h1 {
+    margin: 0;
+    font-size: 2.2rem;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px;
+    border-radius: var(--radius-medium);
+    border: none;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.4px;
+    color: #fff;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.08);
+    transition: var(--transition-base);
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
+}
+
+.btn-danger {
+    background: linear-gradient(120deg, #ff6b6b, var(--danger-color));
+}
+
+.btn-success {
+    background: linear-gradient(120deg, var(--primary-color), #2e7d32);
+}
+
+.inline-form {
+    display: inline-block;
+}
+
+.info-banner {
+    background: rgba(129, 212, 250, 0.14);
+    color: #90caf9;
+    border-left: 4px solid #29b6f6;
+    padding: 16px 24px;
+    border-radius: var(--radius-medium);
+    margin-bottom: 28px;
+    box-shadow: 0 10px 24px rgba(41, 182, 246, 0.25);
+}
+
+.admin-section {
+    display: flex;
+    align-items: flex-start;
+    gap: 32px;
+}
+
+.admin-column {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-column h3 {
+    margin: 0 0 16px;
+    font-size: 1.45rem;
+    font-weight: 600;
+}
+
+.admin-column.admin-left {
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+}
+
+.admin-column.admin-right {
+    max-width: 360px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+}
+
+.add-user-form {
+    background: var(--surface-card);
+    border-radius: var(--radius-medium);
+    padding: 26px;
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    transition: var(--transition-base);
+}
+
+.add-user-form:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.32);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    border-radius: var(--radius-small);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 12px 14px;
+    background: rgba(6, 10, 18, 0.65);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: var(--transition-base);
+    resize: vertical;
+}
+
+.form-group textarea {
+    min-height: 120px;
+}
+
+.form-group input[type="file"] {
+    padding: 10px;
+    background: rgba(12, 18, 28, 0.75);
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: rgba(0, 191, 165, 0.65);
+    box-shadow: 0 0 0 3px rgba(0, 191, 165, 0.22);
+}
+
+.form-group input[type="checkbox"] {
+    width: auto;
+    accent-color: var(--accent-color);
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 0;
+    background: var(--surface-card);
+    border-radius: var(--radius-medium);
+    overflow: hidden;
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-card);
+}
+
+.users-table thead {
+    background: linear-gradient(120deg, rgba(76, 175, 80, 0.5), rgba(0, 0, 0, 0.35));
+}
+
+.users-table th,
+.users-table td {
+    padding: 16px 18px;
+    text-align: left;
+    font-size: 0.95rem;
+}
+
+.users-table th {
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-size: 0.82rem;
+    color: #ffffff;
+}
+
+.users-table tbody tr {
+    transition: var(--transition-base);
+}
+
+.users-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.users-table tbody tr:hover {
+    background: rgba(76, 175, 80, 0.14);
+}
+
+.users-table td {
+    color: var(--text-muted);
+}
+
+.card {
+    background: var(--surface-card);
+    border-radius: var(--radius-medium);
+    padding: 20px 22px;
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-card);
+    color: var(--text-muted);
+}
+
+.small {
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.ai-response-scroll {
+    max-height: 300px;
+    overflow: auto;
+    padding-right: 8px;
+    -webkit-overflow-scrolling: touch;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+@media (max-width: 1100px) {
+    .dashboard-container.admin-container {
+        padding: 40px 24px;
+    }
+
+    .admin-section {
+        flex-direction: column;
+    }
+
+    .admin-column.admin-right {
+        max-width: none;
+    }
+}
+
+@media (max-width: 680px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .btn {
+        width: 100%;
+    }
+
+    .admin-actions {
+        width: 100%;
+    }
+}

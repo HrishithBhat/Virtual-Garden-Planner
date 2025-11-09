@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - ML Training</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_ml.css') }}">
+</head>
+<body>
+    <!-- Background particles container -->
+    <div class="ml-particles-container"></div>
+    
+    <div class="dashboard-container admin-container">
+        <div class="dashboard-header">
+            <h1><i class="fas fa-brain"></i> ML Training</h1>
+            <div class="admin-actions">
+                <a href="{{ url_for('api.admin_dashboard') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Admin
+                </a>
+                <a href="{{ url_for('api.logout') }}" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="error info-banner">
+                    <i class="fas fa-info-circle"></i>
+                    {% for msg in messages %}
+                        <div>{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section class="admin-section">
+            <div class="admin-column admin-left">
+                <h3><i class="fas fa-cloud-upload-alt"></i> Upload Training Images</h3>
+                <form method="POST" action="{{ url_for('api.admin_ml_upload') }}" enctype="multipart/form-data" class="add-user-form">
+                    <div class="form-group">
+                        <input type="text" name="label" id="labelInput" placeholder="Class label (e.g., healthy, rust, blight)" minlength="2">
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" name="use_ai"> Use AI to validate/tag photos</label>
+                        <div class="help-tooltip">
+                            <i class="fas fa-question-circle"></i>
+                            <span class="tooltip-text">AI will analyze uploaded images to ensure they match the specified class</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="file-upload" class="custom-file-upload">
+                            <i class="fas fa-file-image"></i> Choose Images
+                        </label>
+                        <input id="file-upload" type="file" name="images" accept="image/*" multiple required>
+                        <div class="upload-animation"></div>
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-upload"></i> Upload Photos
+                    </button>
+                </form>
+
+                <h3><i class="fas fa-cogs"></i> Train Model</h3>
+                <form method="POST" action="{{ url_for('api.admin_ml_train') }}" class="add-user-form">
+                    <div class="form-group">
+                        <label for="epochs">Epochs</label>
+                        <input id="epochs" type="number" name="epochs" value="3" min="1" max="50">
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: 30%;"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="lr">Learning rate</label>
+                        <input id="lr" type="number" name="lr" step="0.0001" value="0.001">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-play-circle"></i> Train Model
+                    </button>
+                </form>
+            </div>
+
+            <div class="admin-column admin-right">
+                <h3><i class="fas fa-chart-bar"></i> Dataset Summary</h3>
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-tag"></i> Class</th>
+                            <th><i class="fas fa-images"></i> Images</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in summary %}
+                        <tr class="table-row-animated">
+                            <td><span class="class-label">{{ row.name }}</span></td>
+                            <td>{{ row.count }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="2">
+                                <div class="no-data-message">
+                                    <i class="fas fa-seedling"></i>
+                                    <p>No images uploaded yet. Start by adding training data.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if model_info %}
+                    <div class="card">
+                        <div class="small">
+                            <i class="fas fa-history"></i> Last training: {{ model_info }}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <h3><i class="fas fa-robot"></i> AI Training Helper</h3>
+                <form method="POST" action="{{ url_for('api.admin_ml_ai_help') }}" class="add-user-form ai-helper-section">
+                    <div class="form-group">
+                        <input type="text" name="labels" placeholder="Existing labels (comma-separated)">
+                    </div>
+                    <div class="form-group">
+                        <textarea name="note" rows="3" placeholder="Notes about crops/diseases or goals"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-lightbulb"></i> Ask AI
+                    </button>
+                </form>
+                {% if ai_text %}
+                <div class="card">
+                    <div class="small">
+                        <i class="fas fa-comment-dots"></i> {{ ai_text }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+
+    <script src="{{ url_for('static', filename='admin_ml.js') }}"></script>
+</body>
+</html>

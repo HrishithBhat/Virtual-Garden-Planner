@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Disease Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ai_disease.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>AI Disease Detection</h1>
+            <div class="header-actions">
+                <a href="{{ url_for('api.dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+            </div>
+        </div>
+        <div class="card">
+            <p class="small">Upload a clear photo of a plant leaf. The model will try to detect possible diseases.</p>
+            <form id="predictForm" class="ai-form" enctype="multipart/form-data" onsubmit="return false;">
+                <input id="imageInput" type="file" name="image" accept="image/*" capture="environment" class="ai-input" required>
+                <button id="predictBtn" class="btn btn-primary" type="button">Detect</button>
+            </form>
+            <div class="camera-controls">
+                <button id="openCamera" type="button" class="btn">Open Camera</button>
+                <button id="switchCamera" type="button" class="btn">Switch (Front/Back)</button>
+                <button id="capturePhoto" type="button" class="btn btn-success">Capture Photo</button>
+            </div>
+            <video id="cameraPreview" class="camera-preview is-hidden" autoplay playsinline muted></video>
+            <img id="imagePreview" class="image-preview is-hidden" alt="Selected leaf preview" />
+            <div id="predictStatus" class="small"></div>
+            <div id="predictResult" class="ai-messages spaced-above"></div>
+        </div>
+
+        <div class="card">
+            <h3 class="panel-title">AI Follow‑up</h3>
+            <div id="chatBox" class="ai-chat-container">
+                <div id="chatMessages" class="ai-messages"></div>
+                <form id="chatForm" class="ai-form" onsubmit="return false;">
+                    <input id="chatInput" type="text" placeholder="Ask follow‑up questions about the diagnosis..." class="ai-input">
+                    <button id="chatSend" class="btn btn-primary">Send</button>
+                </form>
+                <div id="chatStatus" class="small"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function(){
+            const form = document.getElementById('predictForm');
+            const btn = document.getElementById('predictBtn');
+            const statusEl = document.getElementById('predictStatus');
+            const resultEl = document.getElementById('predictResult');
+
+            const chatForm = document.getElementById('chatForm');
+            const chatInput = document.getElementById('chatInput');
+            const chatSend = document.getElementById('chatSend');
+            const chatMessages = document.getElementById('chatMessages');
+            const chatStatus = document.getElementById('chatStatus');
+
+            // Camera elements
+            const camOpen = document.getElementById('openCamera');
+            const camSwitch = document.getElementById('switchCamera');
+            const camCapture = document.getElementById('capturePhoto');
+            const videoEl = document.getElementById('cameraPreview');
+            const previewEl = document.getElementById('imagePreview');
+            let camStream = null;
+            let facingMode = 'environment'; // 'user' | 'environment'
+
+            async function startCamera(){
+                try{
+                    // Stop previous
+                    stopCamera();
+                    const constraints = { video: { facingMode } };
+                    // Try exact first for some browsers
+                    try{
+                        camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: facingMode } } });
+                    } catch(_e){
+                        camStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    }
+                    videoEl.srcObject = camStream;
+                    videoEl.style.display = '';
+                    statusEl.textContent = 'Camera ready';
+                }catch(e){
+                    statusEl.textContent = 'Camera unavailable. Please allow access or use file upload.';
+                }
+            }
+            function stopCamera(){
+                if (camStream){ camStream.getTracks().forEach(t=> t.stop()); camStream = null; }
+                if (videoEl){ videoEl.srcObject = null; videoEl.style.display = 'none'; }
+            }
+            async function switchCamera(){
+                facingMode = (facingMode === 'environment') ? 'user' : 'environment';
+                await startCamera();
+            }
+            function capturePhoto(){
+                if(!videoEl || !camStream){ statusEl.textContent = 'Open the camera first.'; return; }
+                const canvas = document.createElement('canvas');
+                const vw = videoEl.videoWidth || 1280;
+                const vh = videoEl.videoHeight || 720;
+                canvas.width = vw; canvas.height = vh;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(videoEl, 0, 0, vw, vh);
+                canvas.toBlob(blob => {
+                    if(!blob){ statusEl.textContent = 'Failed to capture photo.'; return; }
+                    const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    const input = document.getElementById('imageInput');
+                    input.files = dt.files;
+                    // Show preview
+                    try { URL.revokeObjectURL(previewEl.src); } catch(_) {}
+                    previewEl.src = URL.createObjectURL(blob);
+                    previewEl.style.display = '';
+                    videoEl.style.display = 'none';
+                    statusEl.textContent = 'Photo captured — preview shown.';
+                }, 'image/jpeg', 0.92);
+            }
+
+            // Show preview for uploaded file
+            const imageInput = document.getElementById('imageInput');
+            imageInput.addEventListener('change', function(){
+                const f = this.files && this.files[0];
+                if(!f) return;
+                try { URL.revokeObjectURL(previewEl.src); } catch(_) {}
+                previewEl.src = URL.createObjectURL(f);
+                previewEl.style.display = '';
+                videoEl.style.display = 'none';
+                statusEl.textContent = 'Image selected — preview shown.';
+            });
+
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+                camOpen?.addEventListener('click', startCamera);
+                camSwitch?.addEventListener('click', switchCamera);
+                camCapture?.addEventListener('click', capturePhoto);
+            } else {
+                camOpen?.setAttribute('disabled','true');
+                camSwitch?.setAttribute('disabled','true');
+                camCapture?.setAttribute('disabled','true');
+            }
+
+            function escapeHtml(s){
+                return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            }
+            function renderMessageHTML(text){
+                let t = escapeHtml(text||'');
+                const lines = t.split(/\r?\n/);
+                const out = ['<ul class="ai-list">'];
+                for(const raw of lines){
+                    const line = raw.trim();
+                    if(!line) continue;
+                    const li = line.replace(/^(-|•)\s*/,'');
+                    out.push('<li>'+li+'</li>');
+                }
+                out.push('</ul>');
+                return out.join('');
+            }
+            function appendMsg(role, text){
+                const wrap = document.createElement('div');
+                wrap.className = 'ai-msg ' + (role === 'user' ? 'ai-user' : 'ai-assistant');
+                const p = document.createElement('div');
+                if(role === 'assistant'){
+                    p.innerHTML = renderMessageHTML(text);
+                } else {
+                    p.textContent = text;
+                }
+                wrap.appendChild(p);
+                chatMessages.appendChild(wrap);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            form.addEventListener('submit', function(){});
+            btn.addEventListener('click', function(){
+                const file = document.getElementById('imageInput').files[0];
+                if(!file){ statusEl.textContent = 'Please choose or capture a photo first.'; return; }
+                const fd = new FormData();
+                fd.append('image', file);
+                resultEl.innerHTML = '';
+                statusEl.textContent = 'Validating image...';
+                btn.disabled = true;
+                // Step 1: pre-check that the image is a plant
+                fetch("{{ url_for('api.ai_disease_is_plant') }}", { method: 'POST', body: fd })
+                    .then(r=>r.json())
+                    .then(val => {
+                        if(!val || val.is_plant !== true){
+                            const msg = (val && (val.message || val.error)) || 'Please upload a clear plant leaf photo.';
+                            resultEl.textContent = msg;
+                            throw new Error('not_plant');
+                        }
+                        if(typeof val.ratio === 'number'){
+                            const plantPct = Math.round(val.ratio * 1000) / 10;
+                            appendMsg('assistant', `- Plant validation confidence: ${plantPct}%`);
+                        }
+                        statusEl.textContent = 'Analyzing...';
+                        const fd2 = new FormData();
+                        fd2.append('image', file);
+                        return fetch("{{ url_for('api.ai_disease_predict') }}", { method: 'POST', headers:{'Accept':'application/json'}, body: fd2 });
+                    })
+                    .then(r=>r.json())
+                    .then(res=>{
+                        resultEl.innerHTML = '';
+                        if(res.error){
+                            resultEl.textContent = res.error;
+                            return;
+                        }
+                        if(res.label || typeof res.confidence === 'number'){
+                            const pct = typeof res.confidence === 'number' ? `${Math.round(res.confidence * 1000) / 10}%` : null;
+                            const line = res.label ? `- Detected: ${res.label}${pct ? ` (${pct} match)` : ''}` : (pct ? `- Match confidence: ${pct}` : '- Result ready');
+                            appendMsg('assistant', line);
+                        }
+                        if(res.details){
+                            appendMsg('assistant', res.details);
+                        } else if (!res.label && !res.details) {
+                            appendMsg('assistant', '- Got the image. Processing complete.');
+                        }
+                    })
+                    .catch(e=>{ if(e && e.message !== 'not_plant'){ resultEl.textContent = 'Error during prediction'; } })
+                    .finally(()=>{ statusEl.textContent = ''; btn.disabled = false; });
+            });
+
+            chatForm.addEventListener('submit', function(){});
+            chatSend.addEventListener('click', function(){
+                const msg = (chatInput.value||'').trim();
+                if(!msg) return;
+                appendMsg('user', msg);
+                chatInput.value = '';
+                chatSend.disabled = true;
+                chatStatus.textContent = 'Thinking...';
+                fetch("{{ url_for('api.ai_disease_chat') }}", { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ message: msg }) })
+                    .then(r=>r.json())
+                    .then(res=>{
+                        if(res.error){ appendMsg('assistant', res.error); return; }
+                        if(res.assistant){ appendMsg('assistant', res.assistant); }
+                    })
+                    .catch(()=> appendMsg('assistant','Error'))
+                    .finally(()=>{ chatSend.disabled = false; chatStatus.textContent = ''; });
+            });
+        })();
+    </script>
+</body>
+</html>

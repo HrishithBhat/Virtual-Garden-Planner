@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Plant - Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_plants_edit.css') }}">
+</head>
+<body>
+    <!-- Background particles container -->
+    <div class="plants-edit-particles-container"></div>
+    
+    <div class="dashboard-container admin-container">
+        <div class="dashboard-header">
+            <h1><i class="fas fa-seedling"></i> Edit Plant</h1>
+            <div class="admin-actions">
+                <a href="{{ url_for('api.admin_plants') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Plants
+                </a>
+                <a href="{{ url_for('api.logout') }}" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="error info-banner">
+                    <i class="fas fa-info-circle"></i>
+                    {% for msg in messages %}
+                        <div>{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('api.admin_edit_plant', plant_id=plant.id) }}" class="add-user-form">
+            <div class="form-group">
+                <input type="text" name="name" placeholder="Plant Name" required value="{{ plant.name }}">
+            </div>
+            <div class="form-group">
+                <input type="text" name="scientific_name" placeholder="Scientific Name" required value="{{ plant.scientific_name }}">
+            </div>
+            <div class="form-group">
+                <input type="number" name="duration_days" placeholder="Duration (days)" required min="1" value="{{ plant.duration_days }}">
+            </div>
+            <div class="form-group">
+                <input type="text" name="type" placeholder="Type of Plant" required value="{{ plant.type }}">
+            </div>
+            <div class="form-group">
+                <input type="url" name="photo_url" placeholder="Photo URL" required value="{{ plant.photo_url }}">
+            </div>
+            <div class="form-group">
+                <textarea name="description" placeholder="Description" required rows="5">{{ plant.description }}</textarea>
+            </div>
+            <div class="form-group">
+                <input type="text" name="sunlight" placeholder="Sunlight (e.g., Full sun, Partial shade)" value="{{ plant.sunlight or '' }}">
+            </div>
+            <div class="form-group">
+                <input type="number" name="spacing_cm" min="0" placeholder="Spacing (cm)" value="{{ plant.spacing_cm or '' }}">
+            </div>
+            <div class="form-group">
+                <input type="text" name="watering_needs" placeholder="Watering needs" value="{{ plant.watering_needs or '' }}">
+            </div>
+            <div class="form-group">
+                <input type="url" name="model_url" placeholder="3D Model URL (.glb/.gltf)" value="{{ plant.model_url or '' }}">
+            </div>
+            <div class="form-group">
+                <input type="number" name="growth_height_cm" min="0" placeholder="Growth height (cm)" value="{{ plant.growth_height_cm or '' }}">
+            </div>
+            <div class="form-group">
+                <input type="number" name="growth_width_cm" min="0" placeholder="Growth width (cm)" value="{{ plant.growth_width_cm or '' }}">
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </form>
+    </div>
+    
+    <script src="{{ url_for('static', filename='admin_plants_edit.js') }}"></script>
+</body>
+</html>

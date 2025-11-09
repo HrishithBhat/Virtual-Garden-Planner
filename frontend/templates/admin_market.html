@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Manage Marketplace</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_market.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+</head>
+<body>
+    <!-- Animated background particles -->
+    <div class="market-particles-container"></div>
+    
+    <div class="dashboard-container admin-container">
+        <div class="dashboard-header">
+            <h1 class="market-title">Manage Marketplace <span class="market-icon"><i class="fas fa-shopping-cart"></i></span></h1>
+            <div class="admin-actions">
+                <a href="{{ url_for('api.admin_dashboard') }}" class="btn btn-primary btn-animated">
+                    <i class="fas fa-users"></i>
+                    <span>Manage Users</span>
+                </a>
+                <a href="{{ url_for('api.admin_plants') }}" class="btn btn-primary btn-animated">
+                    <i class="fas fa-leaf"></i>
+                    <span>Manage Plants</span>
+                </a>
+                <a href="{{ url_for('api.admin_community') }}" class="btn btn-primary btn-animated">
+                    <i class="fas fa-comments"></i>
+                    <span>Community</span>
+                </a>
+                <a href="{{ url_for('api.logout') }}" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="error info-banner">
+                    {% for msg in messages %}
+                        <div>{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Product stats cards -->
+        <div class="product-stats-container">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-boxes"></i></div>
+                <div class="stat-value" data-value="{{ products|length }}">0</div>
+                <div class="stat-label">Total Products</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-spray-can"></i></div>
+                <div class="stat-value" data-value="{{ products|selectattr('type', 'equalto', 'pesticide')|list|length }}">0</div>
+                <div class="stat-label">Pesticides</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-tools"></i></div>
+                <div class="stat-value" data-value="{{ products|selectattr('type', 'equalto', 'tools')|list|length }}">0</div>
+                <div class="stat-label">Tools</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-seedling"></i></div>
+                <div class="stat-value" data-value="{{ products|selectattr('type', 'equalto', 'seeds')|list|length }}">0</div>
+                <div class="stat-label">Seeds</div>
+            </div>
+        </div>
+
+        <section class="admin-section">
+            <div class="admin-column admin-left">
+                <div class="section-header">
+                    <i class="fas fa-shopping-basket section-icon"></i>
+                    <h3>Existing Products</h3>
+                </div>
+                
+                <!-- Search and filter options -->
+                <div class="search-filter-products-container">
+                    <input type="text" id="productSearch" class="search-products-input" placeholder="Search products...">
+                    <div class="filter-products-buttons">
+                        <button class="filter-product-btn active" data-filter="all">All</button>
+                        <button class="filter-product-btn" data-filter="pesticide">Pesticides</button>
+                        <button class="filter-product-btn" data-filter="tools">Tools</button>
+                        <button class="filter-product-btn" data-filter="manure">Manure</button>
+                        <button class="filter-product-btn" data-filter="seeds">Seeds</button>
+                    </div>
+                </div>
+                
+                <div class="products-table-container">
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Unit</th>
+                                <th>Brand</th>
+                                <th>Image</th>
+                                <th>Buy Link</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in products %}
+                            <tr class="table-row-product-animated">
+                                <td>{{ p.id }}</td>
+                                <td>{{ p.name }}</td>
+                                <td>
+                                    <span class="product-type-badge {{ p.type }}">{{ p.type }}</span>
+                                </td>
+                                <td>${{ p.price }}</td>
+                                <td><span class="product-stock">{{ p.quantity }}</span></td>
+                                <td>{{ p.unit }}</td>
+                                <td>{{ p.brand or '-' }}</td>
+                                <td>
+                                    {% if p.image_url %}
+                                        <img src="{{ p.image_url }}" alt="{{ p.name }}" class="product-image-thumbnail" onerror="this.src='https://via.placeholder.com/50?text=No+Image'">
+                                    {% else %}
+                                        <span>No image</span>
+                                    {% endif %}
+                                </td>
+                                <td><a href="{{ p.buy_url }}" target="_blank" class="buy-link">Shop</a></td>
+                                <td>
+                                    <a href="{{ url_for('api.admin_edit_product', product_id=p.id) }}" class="btn btn-primary btn-icon small">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('api.admin_delete_product', product_id=p.id) }}" class="inline-form" onsubmit="return confirmDelete(event, '{{ p.name }}');">
+                                        <button type="submit" class="btn btn-danger btn-icon small">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr class="no-data-row">
+                                <td colspan="10" class="no-data-cell">
+                                    <div class="no-data-message">
+                                        <i class="fas fa-shopping-basket"></i>
+                                        <p>No products found. Add your first product!</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="admin-column admin-right">
+                <div class="section-header">
+                    <i class="fas fa-plus-circle section-icon"></i>
+                    <h3>Add New Product</h3>
+                </div>
+                <form method="POST" action="{{ url_for('api.admin_add_product') }}" class="add-product-form" id="addProductForm">
+                    <div class="animated-product-form-group">
+                        <input type="text" name="name" id="productName" placeholder="Product Name" required class="animated-product-input">
+                        <label for="productName" class="floating-product-label">Product Name</label>
+                        <span class="product-input-icon"><i class="fas fa-tag"></i></span>
+                    </div>
+                    
+                    <div class="animated-product-form-group">
+                        <input type="text" name="type" id="productType" placeholder="Type (e.g., pesticide, tools, manure)" required class="animated-product-input">
+                        <label for="productType" class="floating-product-label">Product Type</label>
+                        <span class="product-input-icon"><i class="fas fa-layer-group"></i></span>
+                    </div>
+                    
+                    <div class="animated-product-form-group">
+                        <input type="url" name="image_url" id="productImageUrl" placeholder="Image URL" required class="animated-product-input">
+                        <label for="productImageUrl" class="floating-product-label">Image URL</label>
+                        <span class="product-input-icon"><i class="fas fa-image"></i></span>
+                    </div>
+                    
+                    <div class="animated-product-form-group">
+                        <input type="url" name="buy_url" id="productBuyUrl" placeholder="URL to Buy" required class="animated-product-input">
+                        <label for="productBuyUrl" class="floating-product-label">URL to Buy</label>
+                        <span class="product-input-icon"><i class="fas fa-link"></i></span>
+                    </div>
+                    
+                    <div class="animated-product-form-group">
+                        <input type="number" name="price" id="productPrice" step="0.01" min="0" placeholder="Price" required class="animated-product-input">
+                        <label for="productPrice" class="floating-product-label">Price</label>
+                        <span class="product-input-icon"><i class="fas fa-dollar-sign"></i></span>
+                    </div>
+                    
+                    <div class="animated-product-form-group">
+                        <input type="number" name="quantity" id="productQuantity" min="0" placeholder="Quantity in stock" required class="animated-product-input">
+                        <label for="productQuantity" class="floating-product-label">Quantity</label>
+                        <span class="product-input-icon"><i class="fas fa-cubes"></i></span>
+                    </div>
+                    
+                    <div class="animated-product-form-group">
+                        <input type="text" name="unit" id="productUnit" placeholder="Unit (e.g., kg, pack, piece, liter)" required class="animated-product-input">
+                        <label for="productUnit" class="floating-product-label">Unit</label>
+                        <span class="product-input-icon"><i class="fas fa-weight-hanging"></i></span>
+                    </div>
+                    
+                    <div class="animated-product-form-group">
+                        <input type="text" name="brand" id="productBrand" placeholder="Brand (optional)" class="animated-product-input">
+                        <label for="productBrand" class="floating-product-label">Brand</label>
+                        <span class="product-input-icon"><i class="fas fa-copyright"></i></span>
+                    </div>
+                    
+                    <div class="animated-product-form-group">
+                        <textarea name="description" id="productDescription" placeholder="Description (optional)" rows="5"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success btn-add-product" id="submitProductBtn">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Add Product</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+    </div>
+    
+    <!-- Success message template -->
+    <div class="market-success-message" id="marketSuccessMessage">
+        <i class="fas fa-check-circle"></i>
+        <span class="message-text"></span>
+    </div>
+
+    <script>
+        // Confirm delete with animation
+        function confirmDelete(event, productName) {
+            if (!confirm(`Delete product "${productName}"? This action cannot be undone.`)) {
+                event.preventDefault();
+                return false;
+            }
+            
+            const button = event.target.closest('button');
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            button.disabled = true;
+            return true;
+        }
+        
+        // Flash messages integration with our custom success message system
+        var flashedMessages = JSON.parse('{{ get_flashed_messages()|tojson|safe }}');
+        if (flashedMessages.length > 0) {
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(function() {
+                    showMarketSuccessMessage(flashedMessages[0]);
+                }, 500);
+            });
+        }
+    </script>
+    
+    <!-- Load external JavaScript file -->
+    <script src="{{ url_for('static', filename='admin_market.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join as Expert</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Join as Expert</h1>
+            <div class="header-actions">
+                <a href="{{ url_for('api.community_page') }}" class="btn btn-primary">Back to Community</a>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="error info-banner">{{ error }}</div>
+        {% endif %}
+
+        <div class="card">
+            <form method="POST" enctype="multipart/form-data" class="add-user-form">
+                <div class="form-group">
+                    <input type="text" name="name" placeholder="Full Name" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" name="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" name="password" placeholder="Password (min 6 characters)" minlength="6" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" name="expertise" placeholder="Expertise (e.g., Fruit Plant Expert)" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" name="bio" placeholder="Short bio (optional)">
+                </div>
+                <div class="form-group">
+                    <label class="floating-label">Resume (PDF)</label>
+                    <input type="file" name="resume" accept="application/pdf" required>
+                </div>
+                <div class="form-group">
+                    <label class="floating-label">Work experience (PDF)</label>
+                    <input type="file" name="samples" accept="application/pdf" required>
+                </div>
+                <button type="submit" class="btn btn-success">Submit for Approval</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

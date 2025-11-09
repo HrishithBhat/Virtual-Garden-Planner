@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Garden Planner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('ar.static', filename='ar_planner.css') }}?v=2">
+</head>
+<body>
+    <main class="dashboard-container" role="main">
+        <header class="dashboard-header">
+            <h1>AR Garden Planner</h1>
+            <div class="header-actions">
+                <a href="{{ url_for('api.dashboard') }}" class="btn btn-primary" aria-label="Back to dashboard">Back</a>
+                <button id="arStartBtn" class="btn btn-success" aria-label="Start AR session">Start AR</button>
+                <button id="arSwapBtn" class="btn btn-primary" aria-label="Swap camera">Swap Camera</button>
+                <button id="arSnapshotBtn" class="btn btn-primary" aria-label="Save snapshot">Save Snapshot</button>
+            </div>
+        </header>
+        <div id="selectedBannerTop" class="ar-selected-banner" aria-live="polite"></div>
+
+        <div class="ar-layout">
+            <aside class="plant-sidebar" aria-label="Plant selection">
+                <h3 class="panel-title">Select Plants</h3>
+                <div class="plant-list" id="plantList">
+                    {% for p in plants %}
+                    {% set photo_url = p.photo_url if p.photo_url and p.photo_url != 'None' else None %}
+                    {% set thumb_label = (p.name or '?')[:1] %}
+                    <button type="button" class="plant-item" role="option" aria-selected="false" data-id="{{ p.id }}" data-name="{{ p.name }}" data-model="{{ p.model_url or '' }}" data-height="{{ p.growth_height_cm or '' }}" data-width="{{ p.growth_width_cm or '' }}" data-sunlight="{{ p.sunlight or '' }}" data-spacing="{{ p.spacing_cm or '' }}" data-watering="{{ p.watering_needs or '' }}">
+                        {% if photo_url %}
+                        <img src="{{ photo_url }}" alt="{{ p.name }}" onerror="this.style.display='none'">
+                        {% else %}
+                        <div class="plant-thumb-empty" aria-hidden="true">{{ thumb_label }}</div>
+                        {% endif %}
+                        <span class="plant-title">{{ p.name }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+            </aside>
+            <section class="ar-stage" aria-label="AR stage">
+                <div id="arCanvasWrap" class="ar-canvas-wrap"></div>
+                <div id="aiPanel" class="ar-ai-panel" aria-live="polite"></div>
+                <div class="plant-overlay" id="plantOverlay" aria-live="polite">
+                    <div class="overlay-title" id="ovName"></div>
+                    <div class="overlay-meta"><span id="ovSunlight"></span></div>
+                    <div class="overlay-meta"><span id="ovSpacing"></span></div>
+                    <div class="overlay-meta"><span id="ovWatering"></span></div>
+                </div>
+                <div class="ar-help small" id="arHelp">Tap to place. Drag to move. Two fingers to rotate/scale.</div>
+            </section>
+        </div>
+    </main>
+
+    <script type="module" src="{{ url_for('ar.static', filename='js/ar_planner.js') }}?v=3"></script>
+</body>
+</html>

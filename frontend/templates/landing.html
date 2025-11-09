@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI-Garden: Smart gardening with AI assistant, disease detection, personalized schedules, and marketplace.">
+    <title>Welcome • AI‑Garden</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='landing.css') }}">
+</head>
+<body>
+    <main class="dashboard-container landing-shell" role="main">
+        <header class="landing-header">
+            <div class="brand-mark">AI‑Garden</div>
+            <nav class="landing-actions" aria-label="Primary">
+                <a href="{{ url_for('api.community_page') }}" class="btn">Community</a>
+                <a href="{{ url_for('api.expert_register') }}" class="btn btn-primary">Become Expert</a>
+                <a href="{{ url_for('api.expert_login') }}" class="btn btn-success">Expert Login</a>
+                {% if session.get('user_id') or session.get('is_admin') %}
+                    <a href="{{ url_for('api.dashboard') }}" class="btn">Dashboard</a>
+                    <a href="{{ url_for('api.logout') }}" class="btn btn-danger">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('api.login') }}" class="btn">Login</a>
+                    <a href="{{ url_for('api.register') }}" class="btn">Register</a>
+                {% endif %}
+            </nav>
+        </header>
+
+        <section class="landing-hero" aria-labelledby="hero-title">
+            <h1 id="hero-title" class="hero-title text-gradient">Grow smarter with AI‑Garden</h1>
+            <p class="hero-subtitle">All‑in‑one platform for home and community gardens: plan, track, diagnose, and shop — powered by AI.</p>
+            <div class="cta-row">
+                <a href="{{ url_for('api.register') }}" class="btn btn-success">Create your free account</a>
+                <a href="{{ url_for('api.login') }}" class="btn">I already have an account</a>
+                <a href="{{ url_for('api.expert_register') }}" class="btn btn-primary">Become Expert</a>
+                <a href="{{ url_for('api.expert_login') }}" class="btn btn-success">Expert Login</a>
+            </div>
+        </section>
+
+        <section class="project-overview" aria-labelledby="overview-title">
+            <h2 id="overview-title" class="section-title">Project overview</h2>
+            <p class="overview-text">
+                AI‑Garden is a complete gardening companion. Manage plant collections, build personalized care schedules, get instant disease
+                insights from leaf photos, and discover curated tools and supplies in the marketplace. Whether you are a beginner or a
+                seasoned grower, AI‑Garden helps you keep plants thriving with simple, actionable guidance.
+            </p>
+        </section>
+
+        <section class="feature-grid" aria-labelledby="features-title">
+            <h2 id="features-title" class="section-title">What you can do</h2>
+            <div class="grid">
+                <article class="feature-card">
+                    <div class="feature-badge">01</div>
+                    <h3 class="feature-title">Smart plant management</h3>
+                    <p class="feature-desc">Browse plants with photos and details, then add them to your personal garden in one click.</p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-badge">02</div>
+                    <h3 class="feature-title">Personalized schedules</h3>
+                    <p class="feature-desc">Generate day‑by‑day watering and care schedules, track tasks, and get reminders.</p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-badge">03</div>
+                    <h3 class="feature-title">AI disease detection</h3>
+                    <p class="feature-desc">Upload a leaf photo to get instant, AI‑assisted diagnosis and practical care steps.</p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-badge">04</div>
+                    <h3 class="feature-title">AI assistant chat</h3>
+                    <p class="feature-desc">Ask questions anytime — fertilizing, pests, soil, lighting — get concise, friendly tips.</p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-badge">05</div>
+                    <h3 class="feature-title">Marketplace</h3>
+                    <p class="feature-desc">Find tools, seeds, and supplies matched to your plants with quick links to buy.</p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-badge">06</div>
+                    <h3 class="feature-title">Admin & roles</h3>
+                    <p class="feature-desc">Admin panel plus sub‑admins for plants, ML training, and marketplace management.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="ai-details" aria-labelledby="ai-title">
+            <h2 id="ai-title" class="section-title">AI‑Garden details</h2>
+            <ul class="detail-list" role="list">
+                <li class="detail-item">Disease detection uses local ML when available; otherwise falls back to a cloud AI for safe, concise guidance.</li>
+                <li class="detail-item">Conversations are context‑aware: the assistant tailors tips to the plants in your garden.</li>
+                <li class="detail-item">Schedules are stored and tasks can be checked off; daily reminders surface on your dashboard.</li>
+                <li class="detail-item">Your data is organized per‑user with role‑based access for collaborative management.</li>
+            </ul>
+            <div class="cta-row spaced-top">
+                <a href="{{ url_for('api.register') }}" class="btn btn-success">Start your garden</a>
+                <a href="{{ url_for('api.login') }}" class="btn">Sign in</a>
+            </div>
+        </section>
+
+        <footer class="landing-footer">
+            <div class="small">© {{ 2025 }} AI‑Garden • Grow better, every day</div>
+        </footer>
+    </main>
+</body>
+</html>

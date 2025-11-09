@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - AI Garden</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='register.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
+</head>
+<body>
+    <!-- Animated Particles Container -->
+    <div class="particle-container"></div>
+    
+    <!-- 3D Interactive Card -->
+    <div class="container">
+        <div class="form-container">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="AI Garden Logo" onerror="this.src='https://placehold.co/80x80?text=AI+Garden'">
+                <h1 class="app-title">AI Garden</h1>
+            </div>
+            
+            <h2 class="animated-title">Create Account <span class="animated-emoji">🌱</span></h2>
+            <p class="page-subtitle">Start your green journey with AI assistance</p>
+            
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+            
+            <form method="POST" id="registerForm">
+                <div class="form-group">
+                    <input type="text" name="username" placeholder="Username" required autocomplete="username" minlength="3" class="animated-input">
+                    <span class="input-icon"><i class="fas fa-user"></i></span>
+                    <div class="field-validation">
+                        <span class="validation-indicator" id="username-validation"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <input type="email" name="email" placeholder="Email" required autocomplete="email" class="animated-input">
+                    <span class="input-icon"><i class="fas fa-envelope"></i></span>
+                    <div class="field-validation">
+                        <span class="validation-indicator" id="email-validation"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <input type="password" name="password" id="password" placeholder="Password (min 6 characters)" required autocomplete="new-password" minlength="6" class="animated-input">
+                    <span class="input-icon"><i class="fas fa-lock"></i></span>
+                    <span class="password-toggle" onclick="togglePassword(this)">
+                        <i class="fas fa-eye"></i>
+                    </span>
+                    <div class="password-strength">
+                        <div class="strength-bar"></div>
+                    </div>
+                </div>
+                
+                <div class="terms-container">
+                    <label class="terms-label">
+                        <input type="checkbox" name="terms" required>
+                        <span class="checkmark"></span>
+                        I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-success btn-magnetic" id="registerBtn">
+                    <span class="btn-text">Create Account</span>
+                    <span class="btn-icon"><i class="fas fa-user-plus"></i></span>
+                </button>
+            </form>
+            
+            <div class="link">
+                <span>Already have an account?</span>
+                <a href="{{ url_for('api.login') }}">Sign in</a>
+            </div>
+            <div class="alt-action">
+                <a href="{{ url_for('api.login') }}" class="btn btn-primary btn-magnetic" aria-label="Sign in to your account">
+                    <span class="btn-icon"><i class="fas fa-sign-in-alt"></i></span>
+                    <span class="btn-text">Login</span>
+                </a>
+                <a href="{{ url_for('api.index') }}" class="btn btn-outline btn-magnetic" aria-label="Return to home page">
+                    <span class="btn-icon"><i class="fas fa-home"></i></span>
+                    <span class="btn-text">Back to Home</span>
+                </a>
+            </div>
+            
+            <div class="social-register">
+                <p>Or register with</p>
+                <div class="social-buttons">
+                    <button class="social-btn google">
+                        <i class="fab fa-google"></i>
+                    </button>
+                    <button class="social-btn facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </button>
+                    <button class="social-btn apple">
+                        <i class="fab fa-apple"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/auth-animations.js') }}"></script>
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const btn = document.getElementById('registerBtn');
+            btn.innerHTML = '<span class="loading"></span> <span class="btn-text">Creating account...</span>';
+            btn.disabled = true;
+        });
+        
+        function togglePassword(element) {
+            const passwordInput = element.parentNode.querySelector('input');
+            const icon = element.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+        
+        // Password strength indicator
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            const strengthBar = document.querySelector('.strength-bar');
+            
+            // Simple strength calculation
+            let strength = 0;
+            if (password.length >= 6) strength += 20;
+            if (password.length >= 8) strength += 20;
+            if (/[A-Z]/.test(password)) strength += 20;
+            if (/[0-9]/.test(password)) strength += 20;
+            if (/[^A-Za-z0-9]/.test(password)) strength += 20;
+            
+            strengthBar.style.width = strength + '%';
+            
+            // Set color based on strength
+            if (strength <= 30) {
+                strengthBar.style.backgroundColor = '#ff4d4d';
+            } else if (strength <= 60) {
+                strengthBar.style.backgroundColor = '#ffd633';
+            } else {
+                strengthBar.style.backgroundColor = '#00cc44';
+            }
+        });
+    </script>
+</body>
+</html>

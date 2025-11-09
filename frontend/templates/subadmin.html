@@ -1,0 +1,80 @@
+<html lang="en">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sub-admin - Manage Plants</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='subadmin.css') }}">
+</head>
+<body>
+    <div class="dashboard-container admin-container">
+        <div class="dashboard-header">
+            <h1>Sub-admin Plant Manager</h1>
+            <div class="admin-actions">
+                <a href="{{ url_for('api.logout') }}" class="btn btn-danger">Logout</a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="error info-banner">
+                    {% for msg in messages %}
+                        <div>{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section class="admin-section">
+            <div class="admin-column admin-left">
+                <h3>Available Plants</h3>
+                <div class="plants-grid">
+                    {% for plant in plants %}
+                    <div class="plant-card">
+                        <img src="{{ plant.photo_url }}" alt="{{ plant.name }}" class="plant-photo" onerror="this.style.display='none'" />
+                        <h4 class="plant-name">{{ plant.name }}</h4>
+                        <div class="scientific">{{ plant.scientific_name }}</div>
+                        <div class="meta">Duration: {{ plant.duration_days }} days • Type: {{ plant.type }}</div>
+                        <p class="desc">{{ plant.description }}</p>
+                        <div class="admin-actions actions-spaced">
+                            <a href="{{ url_for('api.admin_edit_plant', plant_id=plant.id) }}" class="btn btn-primary small">Edit</a>
+                            <form method="POST" action="{{ url_for('api.admin_delete_plant', plant_id=plant.id) }}" class="inline-form" onsubmit="return confirm('Delete plant {{ plant.name }}?');">
+                                <button type="submit" class="btn btn-danger small">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div>No plants available.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="admin-column admin-right">
+                <h3>Add Plant</h3>
+                <form method="POST" action="{{ url_for('api.admin_add_plant') }}" class="add-user-form">
+                    <div class="form-group">
+                        <input type="text" name="name" placeholder="Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" name="scientific_name" placeholder="Scientific name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="number" name="duration_days" placeholder="Duration days" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" name="type" placeholder="Type" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" name="photo_url" placeholder="Photo URL" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea name="description" placeholder="Description" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success">Add Plant</button>
+                </form>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

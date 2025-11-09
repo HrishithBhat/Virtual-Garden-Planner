@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weed Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ai_disease.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Weed Detection</h1>
+            <div class="header-actions">
+                <button id="weedHistoryBtn" class="btn">History</button>
+                <a href="{{ url_for('api.dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <p class="small">Upload a garden photo or capture one. AI will detect weeds or pests and suggest safe control methods.</p>
+            <form id="weedForm" class="ai-form" enctype="multipart/form-data" onsubmit="return false;">
+                <input id="weedInput" type="file" name="image" accept="image/*" capture="environment" class="ai-input" required>
+                <button id="weedAnalyzeBtn" class="btn btn-primary" type="button">Analyze</button>
+            </form>
+            <div class="camera-controls">
+                <button id="openCamera" type="button" class="btn">Open Camera</button>
+                <button id="switchCamera" type="button" class="btn">Switch (Front/Back)</button>
+                <button id="capturePhoto" type="button" class="btn btn-success">Capture Photo</button>
+            </div>
+            <video id="cameraPreview" class="camera-preview is-hidden" autoplay playsinline muted></video>
+            <img id="imagePreview" class="image-preview is-hidden" alt="Selected preview" />
+            <div id="weedStatus" class="small"></div>
+        </div>
+
+        <div id="resultCard" class="card" style="display:none;">
+            <h3 class="panel-title">Analysis Result</h3>
+            <div id="resultBody" class="ai-messages"></div>
+            <div class="form-group controls-row">
+                <button id="saveAnalysis" class="btn btn-primary" type="button">Save Analysis</button>
+                <a id="shareCommunity" class="btn" href="{{ url_for('api.community_page') }}" target="_self">Share with Community</a>
+                <a id="getExpert" class="btn" href="{{ url_for('api.community_page') }}?expertise=pests" target="_self">Get Expert Advice</a>
+            </div>
+            <div id="actionStatus" class="small"></div>
+        </div>
+
+        <div id="chatCard" class="card" style="display:none;">
+            <h3 class="panel-title">AI Follow‑up</h3>
+            <div id="chatBox" class="ai-chat-container">
+                <div id="chatMessages" class="ai-messages"></div>
+                <form id="chatForm" class="ai-form" onsubmit="return false;">
+                    <input id="chatInput" type="text" placeholder="Ask about the detected weed..." class="ai-input">
+                    <button id="chatSend" class="btn btn-primary">Send</button>
+                </form>
+                <div id="chatStatus" class="small"></div>
+            </div>
+        </div>
+
+        <div id="historyCard" class="card" style="display:none;">
+            <h3 class="panel-title">History</h3>
+            <div id="historyList" class="ai-messages"></div>
+        </div>
+    </div>
+
+    <script>
+    (function(){
+        const form = document.getElementById('weedForm');
+        const btn = document.getElementById('weedAnalyzeBtn');
+        const input = document.getElementById('weedInput');
+        const statusEl = document.getElementById('weedStatus');
+        const resCard = document.getElementById('resultCard');
+        const resBody = document.getElementById('resultBody');
+        const saveBtn = document.getElementById('saveAnalysis');
+        const shareA = document.getElementById('shareCommunity');
+        const expertA = document.getElementById('getExpert');
+        const actionStatus = document.getElementById('actionStatus');
+        const chatCard = document.getElementById('chatCard');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const chatSend = document.getElementById('chatSend');
+        const chatStatus = document.getElementById('chatStatus');
+
+        const videoEl = document.getElementById('cameraPreview');
+        const previewEl = document.getElementById('imagePreview');
+        const camOpen = document.getElementById('openCamera');
+        const camSwitch = document.getElementById('switchCamera');
+        const camCapture = document.getElementById('capturePhoto');
+        const historyBtn = document.getElementById('weedHistoryBtn');
+        const historyCard = document.getElementById('historyCard');
+        const historyList = document.getElementById('historyList');
+        let camStream = null;
+        let facingMode = 'environment';
+        let lastResult = null;
+        let currentSessionId = null;
+
+        function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+        function renderMessageHTML(text){
+            let t = escapeHtml(text||'');
+            const lines = t.split(/\r?\n/);
+            const out = ['<ul class="ai-list">'];
+            for(const raw of lines){ const line = raw.trim(); if(!line) continue; const li = line.replace(/^(\-|•)\s*/, ''); out.push('<li>'+li+'</li>'); }
+            out.push('</ul>');
+            return out.join('');
+        }
+        function appendMsg(role, text){
+            const wrap = document.createElement('div');
+            wrap.className = 'ai-msg ' + (role === 'user' ? 'ai-user' : 'ai-assistant');
+            const p = document.createElement('div');
+            if(role === 'assistant'){ p.innerHTML = renderMessageHTML(text); } else { p.textContent = text; }
+            wrap.appendChild(p); chatMessages.appendChild(wrap); chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        function renderList(title, items){
+            if(!Array.isArray(items) || !items.length) return '';
+            const lis = items.map(it=> '<li>'+ escapeHtml(it) +'</li>').join('');
+            return '<div class="ai-msg ai-assistant"><div><strong>'+escapeHtml(title)+':</strong></div><ul class="ai-list">'+lis+'</ul></div>';
+        }
+        function renderResult(r){
+            const parts = [];
+            const line = [];
+            if(r.type){ line.push('Type: ' + r.type); }
+            if(r.name){ line.push('Name: ' + r.name); }
+            if(typeof r.confidence === 'number'){ line.push('Confidence: ' + Math.round(r.confidence) + '%'); }
+            if(line.length){ parts.push('<div class="ai-msg ai-assistant">'+ escapeHtml(line.join(' • ')) +'</div>'); }
+            parts.push(renderList('Harmful effects', r.harmful_effects));
+            parts.push(renderList('Control methods', r.control_methods));
+            return parts.join('');
+        }
+
+        async function startCamera(){
+            try{
+                stopCamera();
+                const constraints = { video: { facingMode } };
+                try{ camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: facingMode } } }); }
+                catch(_){ camStream = await navigator.mediaDevices.getUserMedia(constraints); }
+                videoEl.srcObject = camStream; videoEl.style.display=''; statusEl.textContent='Camera ready';
+            }catch(e){ statusEl.textContent='Camera unavailable. Please allow access or use file upload.'; }
+        }
+        function stopCamera(){ if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; } videoEl.srcObject=null; videoEl.style.display='none'; }
+        async function switchCamera(){ facingMode = (facingMode==='environment')?'user':'environment'; await startCamera(); }
+        function capturePhoto(){
+            if(!videoEl || !camStream){ statusEl.textContent='Open the camera first.'; return; }
+            const canvas = document.createElement('canvas');
+            const vw = videoEl.videoWidth || 1280; const vh = videoEl.videoHeight || 720;
+            canvas.width = vw; canvas.height = vh; const ctx = canvas.getContext('2d'); ctx.drawImage(videoEl,0,0,vw,vh);
+            canvas.toBlob(blob=>{
+                if(!blob){ statusEl.textContent='Failed to capture photo.'; return; }
+                const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
+                const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+                try { URL.revokeObjectURL(previewEl.src); } catch(_) {}
+                previewEl.src = URL.createObjectURL(blob); previewEl.style.display=''; videoEl.style.display='none'; statusEl.textContent='Photo captured — preview shown.';
+            }, 'image/jpeg', 0.92);
+        }
+
+        function loadHistory(){
+            historyCard.style.display = '';
+            historyList.innerHTML = '<div class="small">Loading...</div>';
+            fetch("{{ url_for('api.ai_weed_history_list') }}").then(r=>r.json()).then(list=>{
+                if(!Array.isArray(list) || !list.length){ historyList.innerHTML = '<div class="small">No history yet.</div>'; return; }
+                const html = list.map(it=>{
+                    const name = (it.result_name||'Unknown');
+                    const dt = it.updated_at || it.created_at || '';
+                    return `<div class="ai-msg ai-user"><button class="btn" data-sid="${it.id}">` +
+                           `${name} • ${escapeHtml(dt||'')}` + `</button></div>`;
+                }).join('');
+                historyList.innerHTML = html;
+                historyList.querySelectorAll('button[data-sid]').forEach(btn=>{
+                    btn.addEventListener('click', ()=> resumeSession(parseInt(btn.getAttribute('data-sid'),10)));
+                });
+            }).catch(()=>{ historyList.innerHTML = '<div class="small">Failed to load history.</div>'; });
+        }
+
+        function resumeSession(id){
+            fetch(`{{ url_for('api.ai_weed_history_get', session_id=0) }}`.replace('/0','/'+id))
+                .then(r=>r.json()).then(payload=>{
+                    if(payload.error){ statusEl.textContent = payload.error; return; }
+                    const sess = payload.session; const msgs = payload.messages||[];
+                    try {
+                        const j = JSON.parse(sess.result_json||'{}');
+                        resBody.innerHTML = renderResult(j);
+                        resCard.style.display=''; chatCard.style.display=''; statusEl.textContent='';
+                        chatMessages.innerHTML='';
+                        msgs.forEach(m=> appendMsg(m.role==='user'?'user':'assistant', m.message||''));
+                        currentSessionId = sess.id;
+                        lastResult = j;
+                        historyCard.style.display='none';
+                    } catch(_){ statusEl.textContent='Failed to open session.'; }
+                })
+                .catch(()=>{ statusEl.textContent='Failed to open session.'; });
+        }
+
+        input.addEventListener('change', function(){
+            const f = this.files && this.files[0]; if(!f) return;
+            try { URL.revokeObjectURL(previewEl.src); } catch(_) {}
+            previewEl.src = URL.createObjectURL(f); previewEl.style.display=''; videoEl.style.display='none'; statusEl.textContent='Image selected — preview shown.';
+        });
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+            camOpen?.addEventListener('click', startCamera);
+            camSwitch?.addEventListener('click', switchCamera);
+            camCapture?.addEventListener('click', capturePhoto);
+        } else {
+            camOpen?.setAttribute('disabled','true'); camSwitch?.setAttribute('disabled','true'); camCapture?.setAttribute('disabled','true');
+        }
+        historyBtn?.addEventListener('click', loadHistory);
+
+        btn.addEventListener('click', function(){
+            const file = input.files && input.files[0];
+            if(!file){ statusEl.textContent='Please choose or capture a photo first.'; return; }
+            const fd = new FormData(); fd.append('image', file);
+            resCard.style.display='none'; chatCard.style.display='none'; resBody.innerHTML=''; actionStatus.textContent=''; chatMessages.innerHTML='';
+            statusEl.textContent='Validating image...'; btn.disabled=true;
+            // Step 1: pre-check that this is a weed photo
+            fetch("{{ url_for('api.ai_weed_is_weed') }}", { method:'POST', body: fd })
+                .then(r=>r.json())
+                .then(v => {
+                    if(!v || v.is_weed !== true){
+                        statusEl.textContent = 'Please upload a clear weed photo.';
+                        throw new Error('not_weed');
+                    }
+                    if(typeof v.ratio === 'number'){
+                        appendMsg('assistant', `- Weed validation confidence: ${Math.round(v.ratio*1000)/10}%`);
+                    }
+                    statusEl.textContent = 'Analyzing...';
+                    const fd2 = new FormData(); fd2.append('image', file);
+                    return fetch("{{ url_for('api.ai_weed_analyze') }}", { method:'POST', body: fd2 });
+                })
+                .then(r=>r.json())
+                .then(r=>{
+                    if(r.error){ statusEl.textContent=r.error; return; }
+                    if(r.type !== 'weed'){ statusEl.textContent='Please upload a clear weed photo.'; return; }
+                    lastResult = r;
+                    currentSessionId = r.session_id || null;
+                    resBody.innerHTML = renderResult(r);
+                    resCard.style.display='';
+                    if(r.name){ shareA.href = "{{ url_for('api.community_page') }}?q=" + encodeURIComponent(r.name); }
+                    statusEl.textContent = '';
+                    chatCard.style.display='';
+                    appendMsg('assistant', '- I have analyzed your weed photo. Ask me anything about identification, risks, and safe removal.');
+                })
+                .catch(e=>{ if(e && e.message !== 'not_weed'){ statusEl.textContent='Analysis failed'; } })
+                .finally(()=>{ btn.disabled=false; if(!statusEl.textContent) statusEl.textContent=''; });
+        });
+
+        chatForm.addEventListener('submit', function(e){ e.preventDefault(); });
+        chatSend.addEventListener('click', function(){
+            const msg = (chatInput.value||'').trim(); if(!msg) return;
+            appendMsg('user', msg); chatInput.value=''; chatSend.disabled=true; chatStatus.textContent='Thinking...';
+            fetch("{{ url_for('api.ai_weed_chat') }}", { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ message: msg, session_id: currentSessionId }) })
+                .then(r=>r.json())
+                .then(res=>{ if(res.assistant){ appendMsg('assistant', res.assistant); } })
+                .catch(()=> appendMsg('assistant', '- Sorry, I could not answer right now.'))
+                .finally(()=>{ chatSend.disabled=false; chatStatus.textContent=''; });
+        });
+    })();
+    </script>
+</body>
+</html>

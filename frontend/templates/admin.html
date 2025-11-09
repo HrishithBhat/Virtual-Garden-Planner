@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - User Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
+    <!-- Add animate.css for additional animations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+</head>
+<body>
+    <!-- Animated background particles -->
+    <div class="admin-particles-container"></div>
+    
+    <div class="dashboard-container admin-container">
+        <div class="dashboard-header">
+            <h1 class="animated-title">Admin Panel <span class="animated-emoji">⚙️</span></h1>
+            <div class="admin-actions">
+                <a href="{{ url_for('api.admin_plants') }}" class="btn btn-primary btn-animated">
+                    <i class="fas fa-leaf"></i>
+                    <span>Manage Plants</span>
+                </a>
+                <a href="{{ url_for('api.admin_market') }}" class="btn btn-primary btn-animated">
+                    <i class="fas fa-store"></i>
+                    <span>Manage Market</span>
+                </a>
+                <a href="{{ url_for('api.admin_community') }}" class="btn btn-primary btn-animated">
+                    <i class="fas fa-users"></i>
+                    <span>Community</span>
+                </a>
+                <a href="{{ url_for('api.admin_ml') }}" class="btn btn-primary btn-animated">
+                    <i class="fas fa-brain"></i>
+                    <span>ML Training</span>
+                </a>
+                <a href="{{ url_for('api.logout') }}" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="error info-banner">
+                    {% for msg in messages %}
+                        <div>{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section class="admin-section">
+            <div class="admin-column admin-left">
+                <div class="section-header">
+                    <i class="fas fa-users section-icon"></i>
+                    <h3>Existing Users</h3>
+                </div>
+                <div class="table-container">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Plan</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr class="table-row-animated">
+                                <td title="Actual ID {{ user.id }}">{{ loop.index }}</td>
+                                <td>
+                                    <div class="user-info">
+                                        <span class="user-avatar">{{ user.username[0].upper() }}</span>
+                                        <span class="username">{{ user.username }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ user.email }}</td>
+                                <td>
+                                    <span class="user-role-badge {{ user.role if user.role else 'user' }}" data-role="{{ (user.role if user.role else 'user')|lower }}">
+                                        {{ user.role if user.role else 'user' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if user.is_pro %}
+                                        <span class="user-role-badge pro">Pro</span>
+                                    {% else %}
+                                        <span class="user-role-badge user">Normal</span>
+                                    {% endif %}
+                                </td>
+                                <td class="actions-cell">
+                                    <form method="POST" action="{{ url_for('api.admin_set_pro', user_id=user.id) }}" class="inline-form" style="display:inline-block; margin-right:6px;">
+                                        {% if user.is_pro %}
+                                        <input type="hidden" name="action" value="disable">
+                                        <button type="submit" class="btn btn-primary btn-icon small" title="Set Normal">
+                                            <i class="fas fa-user"></i>
+                                        </button>
+                                        {% else %}
+                                        <input type="hidden" name="action" value="enable">
+                                        <button type="submit" class="btn btn-success btn-icon small" title="Set Pro">
+                                            <i class="fas fa-crown"></i>
+                                        </button>
+                                        {% endif %}
+                                    </form>
+                                    <form method="POST" action="{{ url_for('api.admin_delete_user', user_id=user.id) }}" onsubmit="return confirmDelete(event, '{{ user.username }}');" class="inline-form" style="display:inline-block;">
+                                        <button type="submit" class="btn btn-danger btn-icon small">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="no-data-cell">
+                                    <div class="no-data-message">
+                                        <i class="fas fa-users-slash"></i>
+                                        <p>No users found.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="search-filter-container">
+                    <input type="text" id="userSearch" class="search-input" placeholder="Search users..." onkeyup="filterUsers()">
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-role="all">All</button>
+                        <button class="filter-btn" data-role="user">Users</button>
+                        <button class="filter-btn" data-role="sub_admin">Sub-admins</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-column admin-right">
+                <div class="section-header">
+                    <i class="fas fa-user-plus section-icon"></i>
+                    <h3>Add New User</h3>
+                </div>
+                <form method="POST" action="{{ url_for('api.admin_add_user') }}" class="add-user-form" id="addUserForm">
+                    <div class="form-group animated-form-group">
+                        <input type="text" name="username" id="userName" placeholder="Username" required minlength="3" class="animated-input">
+                        <label for="userName" class="floating-label">Username</label>
+                        <span class="input-icon"><i class="fas fa-user"></i></span>
+                        <span class="validation-message"></span>
+                    </div>
+                    <div class="form-group animated-form-group">
+                        <input type="email" name="email" id="userEmail" placeholder="Email" required class="animated-input">
+                        <label for="userEmail" class="floating-label">Email</label>
+                        <span class="input-icon"><i class="fas fa-envelope"></i></span>
+                        <span class="validation-message"></span>
+                    </div>
+                    <div class="form-group animated-form-group">
+                        <input type="password" name="password" id="userPassword" placeholder="Password (min 8 characters)" required minlength="8" class="animated-input">
+                        <label for="userPassword" class="floating-label">Password</label>
+                        <span class="input-icon"><i class="fas fa-lock"></i></span>
+                        <span class="password-toggle">
+                            <i class="fas fa-eye"></i>
+                        </span>
+                        <div class="password-strength">
+                            <div class="strength-bar"></div>
+                        </div>
+                        <span class="validation-message"></span>
+                    </div>
+                    <div class="form-group animated-form-group">
+                        <label for="userRole" class="select-label">User Role</label>
+                        <div class="custom-select">
+                            <select name="role" id="userRole" class="form-select">
+                                <option value="user">Regular User</option>
+                                <option value="sub_admin">Sub-admin (Plants)</option>
+                                <option value="community_sub_admin">Sub-admin (Community)</option>
+                                <option value="ml_sub_admin">Sub-admin (ML)</option>
+                                <option value="market_sub_admin">Sub-admin (Marketplace)</option>
+                            </select>
+                            <span class="select-icon"><i class="fas fa-chevron-down"></i></span>
+                        </div>
+                    </div>
+                    <div class="form-group animated-form-group">
+                        <label class="select-label" for="isProToggle">Plan</label>
+                        <div class="custom-select" style="display:flex;align-items:center;gap:10px;">
+                            <input type="checkbox" id="isProToggle" name="is_pro">
+                            <label for="isProToggle" style="margin:0;cursor:pointer;">Pro plan (access AR Garden)</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-animated" id="submitBtn">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Add User</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+    </div>
+    
+    <!-- Success message template -->
+    <div class="success-message" id="successMessage">
+        <i class="fas fa-check-circle"></i>
+        <span class="message-text"></span>
+    </div>
+
+    <!-- Load external JavaScript file -->
+    <script src="{{ url_for('static', filename='admin.js') }}"></script>
+    
+    <!-- Inline script for specific template-related functions -->
+    <script>
+        // Confirm delete with animation
+        function confirmDelete(event, username) {
+            if (!confirm(`Delete user ${username}? This action cannot be undone.`)) {
+                event.preventDefault();
+                return false;
+            }
+            
+            const button = event.target.closest('button');
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            button.disabled = true;
+            return true;
+        }
+        
+        // Flash messages integration with our custom success message system
+        const flashedMessages = JSON.parse('{{ get_flashed_messages()|tojson|safe }}');
+        if (flashedMessages.length > 0) {
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(function() {
+                    showSuccessMessage(flashedMessages[0]);
+                }, 500);
+            });
+        }
+    </script>
+</body>
+</html>

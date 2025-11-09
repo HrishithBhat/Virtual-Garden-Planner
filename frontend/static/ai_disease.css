@@ -1,0 +1,55 @@
+/* === embedded from style.css === */
+:root{--primary-gradient:linear-gradient(135deg,#00c853 0%,#00b248 40%,#00695c 100%);--secondary-gradient:linear-gradient(135deg,#26a69a 0%,#2e7d32 100%);--danger-gradient:linear-gradient(135deg,#dc3545 0%,#c82333 100%);--shadow-light:0 4px 15px rgba(0,0,0,.05);--shadow-medium:0 8px 25px rgba(0,0,0,.1);--radius-small:8px;--radius-medium:12px;--radius-large:20px}
+*{box-sizing:border-box}
+.dashboard-container{padding:1.5rem;min-height:100vh}
+.dashboard-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;padding-bottom:1.25rem;border-bottom:1px solid rgba(255,255,255,.2)}
+.card{padding:1.25rem;border-radius:var(--radius-large);background:rgba(255,255,255,.9);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);box-shadow:var(--shadow-light)}
+.btn{position:relative;width:auto;padding:12px 20px;border:none;border-radius:var(--radius-medium);font-size:16px;font-weight:600;cursor:pointer;transition:.2s;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:var(--primary-gradient);color:#fff;box-shadow:var(--shadow-medium)}
+.btn-success{background:var(--secondary-gradient);color:#fff;box-shadow:var(--shadow-medium)}
+
+/* === page-specific ai_disease.css below === */
+/* AI Disease Detection page specific styles */
+
+/* Form alignment and spacing */
+.ai-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.ai-form .ai-input { min-height: 44px; }
+
+#predictStatus, #chatStatus { margin-top: 6px; color: #555; }
+
+/* Bullet list styling for AI replies */
+.ai-list { margin: 0; padding-left: 18px; }
+.ai-list li { margin: 4px 0; }
+
+/* Result area styling */
+#predictResult { padding: 12px; border-radius: var(--radius-medium); background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.06); box-shadow: var(--shadow-light); }
+
+/* Panel title underline */
+.panel-title { position: relative; padding-bottom: 6px; }
+.panel-title::after { content: ''; position: absolute; left: 0; bottom: 0; width: 60px; height: 3px; background: var(--primary-gradient); border-radius: 2px; }
+
+/* Camera controls */
+.camera-controls { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+.camera-preview { width:100%; max-height:360px; object-fit:cover; border-radius:var(--radius-large); margin-top:10px; box-shadow:var(--shadow-light); }
+.image-preview { width:100%; max-height:360px; object-fit:cover; border-radius:var(--radius-large); margin-top:10px; box-shadow:var(--shadow-light); }
+
+/* Utility */
+.is-hidden { display: none !important; }
+
+/* Chat area on this page */
+#chatBox { margin-top: 12px; }
+.ai-messages { background: rgba(255,255,255,.95); border: 1px solid rgba(0,0,0,.05); border-radius: var(--radius-large); padding: 12px; overflow-y: auto; max-height: 300px; }
+.ai-messages .ai-msg { display:flex; margin:6px 0; }
+.ai-messages .ai-msg > div { max-width: 82%; padding: 10px 12px; border-radius: var(--radius-medium); box-shadow: var(--shadow-light); }
+.ai-messages .ai-user { justify-content:flex-end; }
+.ai-messages .ai-user > div { background: var(--primary-gradient); color:#fff; border: 1px solid rgba(255,255,255,.15); }
+.ai-messages .ai-assistant { justify-content:flex-start; }
+.ai-messages .ai-assistant > div { background:#fff; color:#333; border: 1px solid rgba(0,0,0,.06); }
+
+/* Ensure images (if any) stay contained */
+.ai-messages img { max-width: 100%; border-radius: var(--radius-small); }
+
+@media (max-width: 768px) {
+  .ai-form { gap: 8px; }
+  .ai-messages .ai-msg > div { max-width: 90%; }
+}

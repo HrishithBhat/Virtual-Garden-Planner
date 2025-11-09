@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Garden Item</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='garden_edit.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Edit Garden Item</h1>
+            <a href="{{ url_for('api.dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="error info-banner">
+                    {% for msg in messages %}
+                        <div>{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('api.garden_edit', garden_id=item.garden_id) }}" class="add-user-form">
+            <div class="form-group">
+                <label>Nickname</label>
+                <input type="text" name="nickname" value="{{ item.nickname or '' }}">
+            </div>
+            <div class="form-group">
+                <label>Planted On</label>
+                <input type="date" name="planted_on" value="{{ item.planted_on }}">
+            </div>
+            <div class="form-group">
+                <label>Quantity</label>
+                <input type="number" name="quantity" min="1" value="{{ item.quantity or 1 }}">
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" name="location" value="{{ item.location or '' }}">
+            </div>
+            <div class="form-group">
+                <label>Watering Interval (days)</label>
+                <input type="number" name="watering_interval_days" min="1" value="{{ item.watering_interval_days or '' }}">
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea name="notes" rows="4">{{ item.notes or '' }}</textarea>
+            </div>
+            <div class="form-group">
+                <label>Last Watered</label>
+                <input type="datetime-local" name="last_watered" value="{% if item.last_watered %}{{ item.last_watered.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+    </div>
+</body>
+</html>

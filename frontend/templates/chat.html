@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chats</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='ai_assistant.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
+</head>
+<body>
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>Chats</h1>
+        <div class="header-actions">
+            <a href="{% if session.get('is_expert') %}{{ url_for('api.expert_community_page') }}{% else %}{{ url_for('api.community_page') }}{% endif %}" class="btn btn-primary">Community</a>
+            <a href="{{ url_for('api.dashboard') }}" class="btn btn-primary">Dashboard</a>
+        </div>
+    </div>
+
+    <div class="controls-row card">
+        <div class="info-banner">Start a chat from the Community page or Expert Dashboard. Select a conversation to continue.</div>
+    </div>
+
+    <div class="card chat-layout">
+        <div id="conversations" class="chat-sidebar">
+            <h3 style="margin:0;">Your Conversations</h3>
+            <div id="convList"></div>
+        </div>
+        <div style="flex:1; min-width: 0;">
+            <div class="chat-header">
+                <div>
+                    <h3 id="headerTitle" class="chat-title">Select a chat</h3>
+                    <div id="headerParticipants" class="chat-participants"></div>
+                </div>
+                <div class="chat-actions">
+                    <a href="{% if session.get('is_expert') %}{{ url_for('api.expert_community_page') }}#myChats{% else %}{{ url_for('api.community_page') }}#myChats{% endif %}" class="btn btn-primary small">Back</a>
+                    {% set only_users = (request.args.get('only_users') or '')|lower %}
+                    {% if only_users not in ['1','true','yes'] %}
+                    <a href="{% if session.get('is_expert') %}{{ url_for('api.expert_community_page') }}{% else %}{{ url_for('api.community_page') }}{% endif %}" class="btn btn-primary small">New Chat</a>
+                    {% endif %}
+                </div>
+            </div>
+            <div id="chatBox" class="ai-chat-container">
+                <div id="messages" class="ai-messages"></div>
+                <form id="chatForm" class="ai-form" onsubmit="return false;">
+                    <input id="chatInput" type="text" placeholder="Type a message..." class="ai-input">
+                    <button id="chatSend" class="btn btn-primary">Send</button>
+                </form>
+                <div id="status" class="small"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function(){
+    const CURRENT_USER_ID = "{{ session.get('user_id') or '' }}";
+    const initialConv = "{{ conv_id if conv_id is defined else '' }}";
+    const convListEl = document.getElementById('convList');
+    const messagesEl = document.getElementById('messages');
+    const chatInput = document.getElementById('chatInput');
+    const chatSend = document.getElementById('chatSend');
+    const statusEl = document.getElementById('status');
+    const headerTitle = document.getElementById('headerTitle');
+    const headerParticipants = document.getElementById('headerParticipants');
+
+    let activeConv = initialConv && String(initialConv).trim() ? String(initialConv) : null;
+    let pollTimer = null;
+    let convPollTimer = null;
+    let paging = { hasMore:false, beforeId:null };
+    let isLoading = false;
+    let lastRenderedId = 0;
+    let firstRenderedId = null;
+    let forceScrollBottomOnReset = false;
+
+    function h(tag, attrs, children){
+        const el = document.createElement(tag);
+        if(attrs){ for(const k in attrs){ if(k === 'class') el.className = attrs[k]; else if(k==='text') el.textContent = attrs[k]; else el.setAttribute(k, attrs[k]); } }
+        (children||[]).forEach(c=> el.appendChild(c));
+        return el;
+    }
+
+    function listConversations(){
+        const url = "{{ url_for('api.chat_conversations') }}";
+        const qs = new URLSearchParams(window.location.search);
+        const ou = (qs.get('only_users') || '').toLowerCase();
+        const onlyUsers = ou === '1' || ou === 'true' || ou === 'yes';
+        fetch(url).then(r=>r.json()).then(list=>{
+            const data = Array.isArray(list) ? (onlyUsers ? list.filter(c=> !c.is_expert_chat) : list) : [];
+            convListEl.innerHTML='';
+            let foundActive = null;
+            data.forEach(c=>{
+                const title = c.title || (c.participants && c.participants.join(', ')) || ('Chat '+c.id);
+                const sub = h('div', {class:'conv-sub', text: (c.last_message||'')});
+                const meta = h('div', {class:'conv-sub', text: (c.last_message_time ? new Date(c.last_message_time).toLocaleString() : '')});
+                const row = h('div', {class:'conv-item clickable'}, [h('div',{class:'conv-title',text:title}), sub, meta]);
+                const link = "{{ url_for('api.chat_page') }}" + '?c=' + c.id + (onlyUsers ? '&only_users=1' : '');
+                const removeBtn = h('button', {class:'btn btn-danger small', text:'Remove'});
+                removeBtn.addEventListener('click', function(e){
+                    e.stopPropagation();
+                    if(!confirm('Remove this chat?')) return;
+                    fetch(`/api/chat/${c.id}/remove`, {method:'POST'})
+                        .then(()=>{
+                            if(String(activeConv) === String(c.id)){
+                                activeConv = null; messagesEl.innerHTML=''; headerTitle.textContent='Select a chat'; headerParticipants.textContent='';
+                            }
+                            listConversations();
+                        })
+                        .catch(function(){});
+                });
+                row.appendChild(removeBtn);
+                row.addEventListener('click', ()=> { try{ history.pushState(null, '', link); }catch(e){} selectConversation(c.id, c); });
+                if(String(c.id) === String(activeConv)){ row.classList.add('active'); foundActive = c; }
+                if((c.unread||0)>0){
+                    const b = h('span',{class:'unread-badge',text:String(c.unread)});
+                    row.appendChild(b);
+                }
+                convListEl.appendChild(row);
+            });
+            if(!activeConv && data.length){
+                const first = data[0];
+                try{ history.pushState(null, '', "{{ url_for('api.chat_page') }}" + '?c=' + first.id + (onlyUsers ? '&only_users=1' : '')); }catch(e){}
+                selectConversation(first.id, first);
+            }
+            if(activeConv && foundActive){
+                // Do not reselect the same conversation; just update header meta
+                headerTitle.textContent = foundActive && foundActive.title ? foundActive.title : ('Chat ' + activeConv);
+                headerParticipants.textContent = (foundActive && foundActive.participants && foundActive.participants.length) ? ('with ' + foundActive.participants.join(', ')) : '';
+            }
+        });
+    }
+
+    function createMsgEl(role, text, time){
+        const wrap = document.createElement('div');
+        wrap.className = 'ai-msg ' + (role === 'me' ? 'right' : 'left');
+        const inner = document.createElement('div');
+        inner.textContent = text;
+        if(time){
+            const meta = document.createElement('span');
+            meta.className = 'msg-meta';
+            meta.textContent = new Date(time).toLocaleTimeString();
+            inner.appendChild(meta);
+        }
+        wrap.appendChild(inner);
+        return wrap;
+    }
+
+    function renderMessages(payload, mode){
+        const list = payload.messages || [];
+        if(mode === 'reset'){
+            const wasAtBottom = (messagesEl.scrollTop + messagesEl.clientHeight) >= (messagesEl.scrollHeight - 20);
+            messagesEl.innerHTML = '';
+            list.forEach(m=>{
+                const el = createMsgEl(String(m.sender_id) === String(CURRENT_USER_ID) ? 'me' : 'other', m.message || '', m.created_at);
+                messagesEl.appendChild(el);
+                firstRenderedId = (firstRenderedId === null) ? m.id : Math.min(firstRenderedId, m.id);
+                lastRenderedId = Math.max(lastRenderedId, m.id);
+            });
+            if(wasAtBottom || forceScrollBottomOnReset){ messagesEl.scrollTop = messagesEl.scrollHeight; }
+            forceScrollBottomOnReset = false;
+        } else if(mode === 'older'){
+            const prevHeight = messagesEl.scrollHeight;
+            list.forEach(m=>{
+                if(firstRenderedId === null || m.id < firstRenderedId){
+                    const el = createMsgEl(String(m.sender_id) === String(CURRENT_USER_ID) ? 'me' : 'other', m.message || '', m.created_at);
+                    messagesEl.insertBefore(el, messagesEl.firstChild);
+                    firstRenderedId = (firstRenderedId === null) ? m.id : Math.min(firstRenderedId, m.id);
+                }
+            });
+            const newHeight = messagesEl.scrollHeight;
+            messagesEl.scrollTop = (messagesEl.scrollTop + (newHeight - prevHeight));
+        } else { // 'latest'
+            const atBottom = (messagesEl.scrollTop + messagesEl.clientHeight) >= (messagesEl.scrollHeight - 20);
+            list.forEach(m=>{
+                if(m.id > lastRenderedId){
+                    const el = createMsgEl(String(m.sender_id) === String(CURRENT_USER_ID) ? 'me' : 'other', m.message || '', m.created_at);
+                    messagesEl.appendChild(el);
+                    firstRenderedId = (firstRenderedId === null) ? m.id : Math.min(firstRenderedId, m.id);
+                    lastRenderedId = Math.max(lastRenderedId, m.id);
+                }
+            });
+            if(atBottom){ messagesEl.scrollTop = messagesEl.scrollHeight; }
+        }
+        paging.hasMore = payload.has_more; paging.beforeId = payload.next_before_id; isLoading = false;
+        fetch(`/api/chat/${activeConv}/read`, {method:'POST'});
+    }
+
+    function loadMessages(reset=true){
+        if(!activeConv){ messagesEl.innerHTML=''; return; }
+        isLoading = true;
+        const hasBefore = !!paging.beforeId;
+        const url = hasBefore ? `/api/chat/${activeConv}/messages?before_id=${paging.beforeId}&limit=50` : `/api/chat/${activeConv}/messages?limit=50`;
+        fetch(url).then(r=>{
+            if(r.status === 403){ messagesEl.innerHTML = '<div class="small">Not allowed.</div>'; return {messages:[]}; }
+            return r.json();
+        }).then(payload=>{
+            const mode = hasBefore ? 'older' : (reset ? 'reset' : 'latest');
+            renderMessages(payload, mode);
+        });
+    }
+
+    messagesEl.addEventListener('scroll', function(){
+        if(messagesEl.scrollTop < 40 && paging.hasMore && !isLoading){
+            loadMessages(false);
+        }
+    });
+
+    function selectConversation(id, meta){
+        activeConv = id; paging = {hasMore:false, beforeId:null};
+        lastRenderedId = 0; firstRenderedId = null; forceScrollBottomOnReset = true;
+        headerTitle.textContent = meta && meta.title ? meta.title : ('Chat '+id);
+        headerParticipants.textContent = (meta && meta.participants && meta.participants.length) ? ('with ' + meta.participants.join(', ')) : '';
+        loadMessages(true);
+        clearInterval(pollTimer);
+        pollTimer = setInterval(()=> loadMessages(false), 1000);
+    }
+
+    chatSend.addEventListener('click', function(){
+        const msg = (chatInput.value||'').trim();
+        if(!msg || !activeConv) return;
+        chatSend.disabled = true; statusEl.textContent = 'Sending...';
+        fetch(`/api/chat/${activeConv}/messages`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: msg}) })
+            .then(r=>r.json()).then(()=>{ chatInput.value=''; paging.beforeId = null; loadMessages(true); })
+            .finally(()=>{ chatSend.disabled = false; statusEl.textContent=''; });
+    });
+
+    chatInput.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); chatSend.click(); }
+    });
+
+    listConversations();
+    if(activeConv){
+        headerTitle.textContent = 'Chat ' + activeConv;
+        headerParticipants.textContent = '';
+        lastRenderedId = 0; firstRenderedId = null;
+        loadMessages(true);
+        clearInterval(pollTimer);
+        pollTimer = setInterval(()=> loadMessages(false), 1000);
+    }
+    clearInterval(convPollTimer);
+    convPollTimer = setInterval(listConversations, 5000);
+})();
+</script>
+</body>
+</html>
